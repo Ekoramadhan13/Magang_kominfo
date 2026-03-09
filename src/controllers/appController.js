@@ -28,6 +28,7 @@ const appController = {
     res.render('applications/create', { title: 'Tambah Aplikasi' });
   },
 
+  
   store: async (req, res) => {
     try {
       const { nama_aplikasi, deskripsi, versi, tanggal_deadline } = req.body;
