@@ -1,0 +1,47 @@
+<%- include('../partials/header') %>
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Tambah Aplikasi Baru</h5>
+      </div>
+      <div class="card-body">
+        <form action="/applications" method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              Nama Aplikasi <span class="text-danger">*</span>
+            </label>
+            <input type="text" name="nama_aplikasi" class="form-control" required 
+                   placeholder="cth: Sistem Informasi Kepegawaian">
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Versi</label>
+              <input type="text" name="versi" class="form-control" placeholder="cth: 1.0.0">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Tanggal Deadline</label>
+              <input type="date" name="tanggal_deadline" class="form-control">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Deskripsi Aplikasi</label>
+            <textarea name="deskripsi" class="form-control" rows="4" 
+                      placeholder="Jelaskan fungsi dan tujuan aplikasi..."></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save"></i> Simpan
+            </button>
+            <a href="/applications" class="btn btn-secondary">
+              <i class="bi bi-arrow-left"></i> Batal
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
