@@ -1,0 +1,47 @@
+<%- include('../partials/header') %>
+
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-person-plus"></i> Tambah User Baru</h5>
+      </div>
+      <div class="card-body">
+        <form action="/users" method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nama Lengkap <span class="text-danger">*</span></label>
+            <input type="text" name="nama" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+            <input type="email" name="email" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+            <input type="password" name="password" class="form-control" required minlength="6">
+            <small class="text-muted">Minimal 6 karakter</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+            <select name="role" class="form-select" required>
+              <option value="">-- Pilih Role --</option>
+              <option value="admin">Admin</option>
+              <option value="tim_leader">Tim Leader</option>
+              <option value="business_analyst">Business Analyst</option>
+              <option value="dsi">DSI (Desainer UI/UX)</option>
+              <option value="programmer">Programmer FE/BE</option>
+              <option value="ketua_tester">Ketua Tim Tester</option>
+              <option value="tester">Tester</option>
+            </select>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button>
+            <a href="/users" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Batal</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
