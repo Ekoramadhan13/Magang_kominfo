@@ -1,0 +1,110 @@
+<%- include('../partials/header') %>
+
+  <div class="row justify-content-center">
+    <div class="col-md-9">
+      <div class="card shadow-sm">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0"><i class="bi bi-bug-fill"></i> Laporkan Bug Baru</h5>
+        </div>
+        <div class="card-body">
+          <form action="/bugs" method="POST" enctype="multipart/form-data">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Aplikasi <span class="text-danger">*</span></label>
+                <select name="application_id" id="appSelect" class="form-select" required>
+                  <option value="">-- Pilih Aplikasi --</option>
+                  <% apps.forEach(app=> { %>
+                    <option value="<%= app.id %>">
+                      <%= app.nama_aplikasi %>
+                    </option>
+                    <% }) %>
+                </select>
+                <% if (apps.length===0) { %>
+                  <small class="text-danger">Anda belum ditugaskan ke aplikasi manapun.</small>
+                  <% } %>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Use Case <span class="text-danger">*</span></label>
+                <select name="use_case_id" id="ucSelect" class="form-select" required>
+                  <option value="">-- Pilih Use Case --</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Judul Bug <span class="text-danger">*</span></label>
+                <input type="text" name="judul" class="form-control" required
+                  placeholder="Ringkasan singkat bug yang ditemukan">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Deskripsi Bug <span class="text-danger">*</span></label>
+                <textarea name="deskripsi" class="form-control" rows="3" required
+                  placeholder="Jelaskan bug secara detail..."></textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Langkah Reproduksi</label>
+                <textarea name="langkah_reproduksi" class="form-control" rows="4"
+                  placeholder="1. Buka halaman..&#10;2. Klik tombol...&#10;3. Bug terjadi..."></textarea>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Expected Result</label>
+                  <textarea name="expected_result" class="form-control" rows="2" placeholder="Seharusnya..."></textarea>
+                </div>
+                <div>
+                  <label class="form-label fw-semibold">Actual Result</label>
+                  <textarea name="actual_result" class="form-control" rows="2"
+                    placeholder="Yang terjadi adalah..."></textarea>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Severity <span class="text-danger">*</span></label>
+                <select name="severity" class="form-select" required>
+                  <option value="critical">🔴 Critical - Crash/Data loss</option>
+                  <option value="major">🟠 Major - Fitur tidak berfungsi</option>
+                  <option value="minor" selected>🟡 Minor - Fitur terganggu</option>
+                  <option value="trivial">🟢 Trivial - Kosmetik</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Priority</label>
+                <select name="priority" class="form-select">
+                  <option value="high">High</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Screenshot (maks 5MB)</label>
+                <input type="file" name="screenshot" class="form-control" accept="image/*">
+              </div>
+            </div>
+            <hr>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-danger"><i class="bi bi-send"></i> Laporkan Bug</button>
+              <a href="/bugs" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Batal</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('appSelect').addEventListener('change', function () {
+      const appId = this.value;
+      const ucSelect = document.getElementById('ucSelect');
+      ucSelect.innerHTML = '<option value="">-- Pilih Use Case --</option>';
+      if (!appId) return;
+      fetch('/bugs/use-cases/' + appId)
+        .then(r => r.json())
+        .then(data => {
+          data.forEach(uc => {
+            const opt = document.createElement('option');
+            opt.value = uc.id;
+            opt.textContent = uc.judul;
+            ucSelect.appendChild(opt);
+          });
+        });
+    });
+  </script>
+
+  <%- include('../partials/footer') %>
