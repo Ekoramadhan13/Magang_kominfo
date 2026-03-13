@@ -122,8 +122,7 @@
 
     <div class="col-md-4">
 
-      <% if (helpers.hasRole(user, 'admin' , 'ketua_tester' , 'tim_leader' , 'business_analyst' ) && bug.status==='open'
-        ) { %>
+      <% if (helpers.hasRole(user, 'admin' , 'ketua_tester' , 'tim_leader' ) && bug.status==='open' ) { %>
         <div class="card shadow-sm mb-3">
           <div class="card-header bg-warning text-dark fw-bold"><i class="bi bi-person-check"></i> Tugaskan Bug</div>
           <div class="card-body">
@@ -176,8 +175,7 @@
             </div>
             <% } %>
 
-              <% if (helpers.hasRole(user, 'tester' , 'business_analyst' , 'ketua_tester' ) && bug.status==='fixed' ) {
-                %>
+              <% if (helpers.hasRole(user, 'tester' , 'ketua_tester' ) && bug.status==='fixed' ) { %>
                 <div class="card shadow-sm mb-3">
                   <div class="card-header bg-success text-white fw-bold"><i class="bi bi-patch-check"></i> Verifikasi
                     Bug</div>

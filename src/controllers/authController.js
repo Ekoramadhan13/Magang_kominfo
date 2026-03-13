@@ -26,7 +26,7 @@ const authController = {
         req.flash('error', 'Email atau password salah.');
         return res.redirect('/login');
       }
-    
+
       req.session.user = {
         id: user.id, nama: user.nama,
         email: user.email, role: user.role

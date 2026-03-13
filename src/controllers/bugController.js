@@ -27,7 +27,11 @@ const bugController = {
         query += ' WHERE b.tester_id = ?';
         params.push(user.id);
       }
-     
+
+      else if (user.role === 'ketua_tester') {
+        query += ' WHERE a.ketua_tester_id = ?';
+        params.push(user.id);
+      }
       else if (user.role === 'programmer' || user.role === 'dsi') {
         query += ' WHERE b.assigned_to = ?';
         params.push(user.id);
@@ -44,12 +48,18 @@ const bugController = {
 
   create: async (req, res) => {
     try {
-      const [apps] = await db.query(
-        `SELECT a.* FROM applications a
-         JOIN testing_assignments ta ON a.id = ta.application_id
-         WHERE ta.tester_id = ? AND ta.status = 'on_going'`,
-        [req.session.user.id]
-      );
+      let query = '';
+      let params = [req.session.user.id];
+
+      if (req.session.user.role === 'ketua_tester') {
+        query = `SELECT * FROM applications WHERE ketua_tester_id = ?`;
+      } else {
+        query = `SELECT a.* FROM applications a
+                 JOIN testing_assignments ta ON a.id = ta.application_id
+                 WHERE ta.tester_id = ? AND ta.status = 'on_going'`;
+      }
+
+      const [apps] = await db.query(query, params);
       res.render('bugs/create', { title: 'Laporkan Bug', apps });
     } catch (err) {
       req.flash('error', 'Gagal memuat form.');
@@ -159,9 +169,9 @@ const bugController = {
   closeBug: async (req, res) => {
     try {
       const { id } = req.params;
-      const { action, catatan } = req.body; 
+      const { action, catatan } = req.body;
 
-      
+
       const [oldBug] = await db.query('SELECT status FROM bugs WHERE id=?', [id]);
       const statusLama = oldBug[0]?.status;
 
@@ -176,6 +186,28 @@ const bugController = {
       );
 
       req.flash('success', action === 'verified' ? 'Bug sudah diverifikasi!' : 'Bug ditolak, status kembali menjadi In Progress.');
+
+
+      if (action === 'verified') {
+        const [bugsForApp] = await db.query('SELECT application_id FROM bugs WHERE id = ?', [id]);
+        const appId = bugsForApp[0]?.application_id;
+
+        if (appId) {
+          const [[stats]] = await db.query(`
+            SELECT COUNT(*) as total, 
+                   SUM(CASE WHEN status IN ('verified', 'closed') THEN 1 ELSE 0 END) as completed
+            FROM bugs WHERE application_id = ?
+          `, [appId]);
+
+          const total = Number(stats.total);
+          const completed = Number(stats.completed);
+
+          if (total > 0 && total === completed) {
+            await db.query("UPDATE applications SET status = 'selesai' WHERE id = ?", [appId]);
+          }
+        }
+      }
+
       res.redirect(`/bugs/${id}`);
     } catch (err) {
       console.error(err);
@@ -214,6 +246,24 @@ const bugController = {
       console.error(err);
       req.flash('error', 'Gagal menugaskan bug.');
       res.redirect(`/bugs/${req.params.id}`);
+    }
+  },
+
+  history: async (req, res) => {
+    try {
+      const [history] = await db.query(`
+        SELECT bh.*, b.judul AS bug_judul, u.nama AS user_nama, a.nama_aplikasi
+        FROM bug_history bh
+        JOIN bugs b ON bh.bug_id = b.id
+        JOIN applications a ON b.application_id = a.id
+        LEFT JOIN users u ON bh.user_id = u.id
+        ORDER BY bh.created_at DESC LIMIT 100
+      `);
+      res.render('bugs/history', { title: 'Riwayat Perubahan Status', history });
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Gagal memuat riwayat.');
+      res.redirect('/dashboard');
     }
   }
 };

@@ -117,7 +117,7 @@
     </div>
   </div>
 
-  
+
   <% if (helpers.hasRole(user, 'ketua_tester' , 'admin' )) { %>
     <div class="card shadow-sm mb-4">
       <div class="card-header bg-success text-white fw-bold"><i class="bi bi-person-check"></i> Tugaskan Tester</div>
@@ -154,13 +154,13 @@
     </div>
     <% } %>
 
-      
+
       <div class="card shadow-sm mb-4">
         <div class="card-header bg-info text-white fw-bold d-flex justify-content-between">
           <span><i class="bi bi-list-check"></i> Use Cases (<%= useCases.length %>)</span>
         </div>
         <div class="card-body">
-          <% if (helpers.hasRole(user, 'tim_leader' , 'business_analyst' , 'admin' )) { %>
+          <% if (helpers.hasRole(user, 'tim_leader' , 'admin' )) { %>
             <button class="btn btn-sm btn-info mb-3" data-bs-toggle="collapse" data-bs-target="#formUseCase">
               <i class="bi bi-plus"></i> Tambah Use Case
             </button>
@@ -232,12 +232,13 @@
         </div>
       </div>
 
-      
+
       <div class="card shadow-sm">
         <div class="card-header bg-danger text-white fw-bold d-flex justify-content-between">
           <span><i class="bi bi-bug"></i> Bugs Ditemukan (<%= bugs.length %>)</span>
-          <% if (helpers.hasRole(user, 'tester' )) { %>
-            <a href="/bugs/create" class="btn btn-sm btn-light text-danger"><i class="bi bi-plus"></i> Laporkan Bug</a>
+          <% if (helpers.hasRole(user, 'tester' , 'ketua_tester' )) { %>
+            <a href="/bugs/create?appId=<%= app.id %>" class="btn btn-sm btn-light text-danger"><i
+                class="bi bi-plus"></i> Laporkan Bug</a>
             <% } %>
         </div>
         <div class="card-body p-0">

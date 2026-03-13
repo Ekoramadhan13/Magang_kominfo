@@ -26,9 +26,12 @@
         <li class="nav-item">
           <a class="nav-link" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a>
         </li>
-        <% if (['admin', 'tim_leader' , 'ketua_tester' ].includes(user.role)) { %>
+        <% if (['admin', 'tim_leader' , 'ketua_tester' , 'business_analyst' ].includes(user.role)) { %>
           <li class="nav-item">
             <a class="nav-link" href="/applications"><i class="bi bi-grid"></i> Aplikasi</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/bugs/history"><i class="bi bi-clock-history"></i> History</a>
           </li>
           <% } %>
             <li class="nav-item">
