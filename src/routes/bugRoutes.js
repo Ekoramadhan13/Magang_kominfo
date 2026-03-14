@@ -12,7 +12,7 @@ router.get('/create', checkRole('tester', 'ketua_tester'), bugController.create)
 router.post('/', checkRole('tester', 'ketua_tester'), bugController.store);
 
 router.get('/history',
-  checkRole('admin', 'tim_leader', 'business_analyst'),
+  checkRole('admin', 'tim_leader', 'business_analyst', 'ketua_tester'),
   bugController.history);
 
 router.put('/:id/status',
