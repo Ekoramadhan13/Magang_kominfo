@@ -16,29 +16,69 @@ const bugController = {
   index: async (req, res) => {
     try {
       const user = req.session.user;
+      const { status, start_date, end_date, tester_id } = req.query;
+
       let query = `SELECT b.*, a.nama_aplikasi, u.nama as tester_nama,
                    uc.judul as use_case_judul
                    FROM bugs b
                    LEFT JOIN applications a ON b.application_id = a.id
                    LEFT JOIN users u ON b.tester_id = u.id
-                   LEFT JOIN use_cases uc ON b.use_case_id = uc.id`;
+                   LEFT JOIN use_cases uc ON b.use_case_id = uc.id
+                   WHERE 1=1 `;
       let params = [];
+      
       if (user.role === 'tester') {
-        query += ' WHERE b.tester_id = ?';
+        query += ' AND b.tester_id = ?';
         params.push(user.id);
       }
-
       else if (user.role === 'ketua_tester') {
-        query += ' WHERE a.ketua_tester_id = ?';
+        query += ' AND a.ketua_tester_id = ?';
         params.push(user.id);
       }
       else if (user.role === 'programmer' || user.role === 'dsi') {
-        query += ' WHERE b.assigned_to = ?';
+        query += ' AND b.assigned_to = ?';
         params.push(user.id);
       }
+      else if (user.role === 'business_analyst' || user.role === 'ba') {
+        query += ' AND b.application_id IN (SELECT application_id FROM ba_assignments WHERE ba_id = ?)';
+        params.push(user.id);
+      }
+
+      // Filter Status
+      if (status) {
+        if (status === 'Berhasil') {
+          query += ' AND b.status = "verified"';
+        } else if (status === 'Gagal') {
+          query += ' AND b.status = "rejected"';
+        } else if (status === 'Berhasil dengan catatan') {
+          query += ' AND b.status = "closed"';
+        } else if (status === 'Sedang Diproses') {
+          query += ' AND b.status IN ("open", "in_progress", "fixed")';
+        }
+      }
+
+      // Filter Tanggal
+      if (start_date) {
+        query += ' AND DATE(b.created_at) >= ?';
+        params.push(start_date);
+      }
+      if (end_date) {
+        query += ' AND DATE(b.created_at) <= ?';
+        params.push(end_date);
+      }
+
+      // Filter Tester
+      if (tester_id) {
+        query += ' AND b.tester_id = ?';
+        params.push(tester_id);
+      }
+
       query += ' ORDER BY b.created_at DESC';
       const [bugs] = await db.query(query, params);
-      res.render('bugs/index', { title: 'Daftar Bugs', bugs, user });
+      
+      const [allTesters] = await db.query("SELECT id, nama FROM users WHERE role IN ('tester', 'ketua_tester') AND is_active = 1");
+
+      res.render('bugs/index', { title: 'Daftar Bugs', bugs, user, query: req.query, allTesters });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Gagal memuat data bugs.');
@@ -146,10 +186,30 @@ const bugController = {
         LEFT JOIN users p ON b.assigned_to = p.id
         WHERE b.id = ?
       `, [id]);
+      
       if (!bug) {
         req.flash('error', 'Bug tidak ditemukan.');
         return res.redirect('/bugs');
       }
+
+      // Filter akses untuk BA
+      if (req.session.user.role === 'business_analyst' || req.session.user.role === 'ba') {
+        const [[isAssigned]] = await db.query(
+          'SELECT id FROM ba_assignments WHERE application_id = ? AND ba_id = ?',
+          [bug.application_id, req.session.user.id]
+        );
+        if (!isAssigned) {
+          req.flash('error', 'Anda tidak memiliki akses ke detail bug ini.');
+          return res.redirect('/bugs');
+        }
+      }
+
+      // Cek apakah user adalah tester yang ditugaskan ke aplikasi ini
+      const [[isAssignedTester]] = await db.query(
+        "SELECT id FROM testing_assignments WHERE application_id = ? AND tester_id = ? AND status = 'on_going'",
+        [bug.application_id, req.session.user.id]
+      );
+
       const [history] = await db.query(`
         SELECT bh.*, u.nama AS user_nama FROM bug_history bh
         LEFT JOIN users u ON bh.user_id = u.id
@@ -158,7 +218,10 @@ const bugController = {
       const [programmers] = await db.query(
         "SELECT id, nama, role FROM users WHERE role IN ('programmer','dsi') AND is_active = 1"
       );
-      res.render('bugs/detail', { title: bug.judul, bug, history, programmers });
+      res.render('bugs/detail', { 
+        title: bug.judul, bug, history, programmers, 
+        isAssignedTester: !!isAssignedTester 
+      });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Gagal memuat detail bug.');
@@ -175,7 +238,9 @@ const bugController = {
       const [oldBug] = await db.query('SELECT status FROM bugs WHERE id=?', [id]);
       const statusLama = oldBug[0]?.status;
 
-      const statusBaru = action === 'rejected' ? 'in_progress' : 'verified';
+      let statusBaru = 'verified';
+      if (action === 'rejected') statusBaru = 'rejected';
+      else if (action === 'closed') statusBaru = 'closed';
 
       await db.query('UPDATE bugs SET status=? WHERE id=?', [statusBaru, id]);
 
@@ -185,7 +250,11 @@ const bugController = {
         [id, req.session.user.id, statusLama, statusBaru, catatan || keterangan]
       );
 
-      req.flash('success', action === 'verified' ? 'Bug sudah diverifikasi!' : 'Bug ditolak, status kembali menjadi In Progress.');
+      let successMsg = 'Bug sudah diverifikasi!';
+      if (action === 'rejected') successMsg = 'Bug ditolak, status kembali menjadi In Progress.';
+      else if (action === 'closed') successMsg = 'Bug diverifikasi dengan catatan!';
+
+      req.flash('success', successMsg);
 
 
       if (action === 'verified') {
@@ -204,6 +273,7 @@ const bugController = {
 
           if (total > 0 && total === completed) {
             await db.query("UPDATE applications SET status = 'selesai' WHERE id = ?", [appId]);
+            await db.query("UPDATE testing_assignments SET status = 'done' WHERE application_id = ?", [appId]);
           }
         }
       }
@@ -220,6 +290,24 @@ const bugController = {
     try {
       const { id } = req.params;
       const { assigned_to, assigned_role } = req.body;
+      const user = req.session.user;
+
+      // Cek kewenangan penugasan
+      if (user.role === 'tester') {
+        const [[bugData]] = await db.query('SELECT application_id FROM bugs WHERE id = ?', [id]);
+        const [[isAssigned]] = await db.query(
+          "SELECT id FROM testing_assignments WHERE application_id = ? AND tester_id = ? AND status = 'on_going'",
+          [bugData.application_id, user.id]
+        );
+        if (!isAssigned) {
+          req.flash('error', 'Anda tidak memiliki wewenang untuk menugaskan bug ini.');
+          return res.redirect(`/bugs/${id}`);
+        }
+      } else if (user.role !== 'ketua_tester') {
+        // Admin dan Tim Leader sekarang dilarang menugaskan bug sesuai permintaan
+        req.flash('error', 'Hanya Ketua Tester dan Tester yang dapat menugaskan bug.');
+        return res.redirect(`/bugs/${id}`);
+      }
 
       const [oldBug] = await db.query('SELECT status FROM bugs WHERE id=?', [id]);
       const statusLama = oldBug[0]?.status;
@@ -249,16 +337,73 @@ const bugController = {
     }
   },
 
+  unassignBug: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.session.user;
+
+      const [[bugData]] = await db.query('SELECT application_id, status, assigned_to FROM bugs WHERE id = ?', [id]);
+      if (!bugData) {
+        req.flash('error', 'Bug tidak ditemukan.');
+        return res.redirect('/bugs');
+      }
+
+      // Cek kewenangan
+      if (user.role === 'tester') {
+        const [[isAssigned]] = await db.query(
+          "SELECT id FROM testing_assignments WHERE application_id = ? AND tester_id = ? AND status = 'on_going'",
+          [bugData.application_id, user.id]
+        );
+        if (!isAssigned) {
+          req.flash('error', 'Anda tidak memiliki wewenang untuk membatalkan penugasan bug ini.');
+          return res.redirect(`/bugs/${id}`);
+        }
+      } else if (user.role !== 'ketua_tester') {
+        req.flash('error', 'Hanya Ketua Tester dan Tester yang dapat membatalkan penugasan bug.');
+        return res.redirect(`/bugs/${id}`);
+      }
+
+      const [oldBug] = await db.query('SELECT status FROM bugs WHERE id=?', [id]);
+      const statusLama = oldBug[0]?.status;
+
+      await db.query(
+        'UPDATE bugs SET assigned_to = NULL, assigned_role = NULL, status = "open" WHERE id = ?',
+        [id]
+      );
+
+      await db.query(
+        'INSERT INTO bug_history (bug_id, user_id, status_lama, status_baru, keterangan) VALUES (?,?,?,?,?)',
+        [id, req.session.user.id, statusLama, 'open', 'Penugasan dibatalkan (Unassigned)']
+      );
+
+      req.flash('success', 'Penugasan berhasil dibatalkan. Status bug kembali menjadi Sedang Diproses.');
+      res.redirect(`/bugs/${id}`);
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Gagal membatalkan penugasan.');
+      res.redirect(`/bugs/${req.params.id}`);
+    }
+  },
+
   history: async (req, res) => {
     try {
-      const [history] = await db.query(`
+      const user = req.session.user;
+      let query = `
         SELECT bh.*, b.judul AS bug_judul, u.nama AS user_nama, a.nama_aplikasi
         FROM bug_history bh
         JOIN bugs b ON bh.bug_id = b.id
         JOIN applications a ON b.application_id = a.id
         LEFT JOIN users u ON bh.user_id = u.id
-        ORDER BY bh.created_at DESC LIMIT 100
-      `);
+      `;
+      let params = [];
+
+      if (user.role === 'business_analyst' || user.role === 'ba') {
+        query += ' WHERE b.application_id IN (SELECT application_id FROM ba_assignments WHERE ba_id = ?)';
+        params.push(user.id);
+      }
+
+      query += ' ORDER BY bh.created_at DESC LIMIT 100';
+      const [history] = await db.query(query, params);
       res.render('bugs/history', { title: 'Riwayat Perubahan Status', history });
     } catch (err) {
       console.error(err);

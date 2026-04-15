@@ -22,8 +22,12 @@ router.put('/:id/status',
 router.get('/:id', bugController.show);
 
 router.post('/:id/assign',
-  checkRole('admin', 'ketua_tester', 'tim_leader'),
+  checkRole('ketua_tester', 'tester'),
   bugController.assignBug);
+
+router.post('/:id/unassign',
+  checkRole('ketua_tester', 'tester'),
+  bugController.unassignBug);
 
 router.put('/:id/verify', checkRole('tester', 'ketua_tester'), bugController.closeBug);
 

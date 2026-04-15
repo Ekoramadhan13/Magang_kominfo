@@ -3,7 +3,8 @@ const db = require('../config/database');
 const appController = {
   index: async (req, res) => {
     try {
-      const [apps] = await db.query(`
+      const user = req.session.user;
+      let query = `
         SELECT a.*, u.nama AS leader_nama, kt.nama AS ketua_tester_nama,
                COUNT(DISTINCT b.id) AS total_bugs,
                SUM(b.status = 'open') AS bugs_open,
@@ -14,8 +15,16 @@ const appController = {
         LEFT JOIN users kt ON a.ketua_tester_id = kt.id
         LEFT JOIN bugs b ON a.id = b.application_id
         LEFT JOIN testing_assignments ta ON a.id = ta.application_id
-        GROUP BY a.id ORDER BY a.created_at DESC
-      `);
+      `;
+      let params = [];
+
+      if (user.role === 'business_analyst' || user.role === 'ba') {
+        query += ` JOIN ba_assignments baa ON a.id = baa.application_id WHERE baa.ba_id = ? `;
+        params.push(user.id);
+      }
+
+      query += ` GROUP BY a.id ORDER BY a.created_at DESC`;
+      const [apps] = await db.query(query, params);
       res.render('applications/index', { title: 'Daftar Aplikasi', apps });
     } catch (err) {
       console.error(err);
@@ -51,7 +60,21 @@ const appController = {
 
   show: async (req, res) => {
     try {
+      const user = req.session.user;
       const { id } = req.params;
+
+      // Filter akses untuk BA
+      if (user.role === 'business_analyst' || user.role === 'ba') {
+        const [[isAssigned]] = await db.query(
+          'SELECT id FROM ba_assignments WHERE application_id = ? AND ba_id = ?',
+          [id, user.id]
+        );
+        if (!isAssigned) {
+          req.flash('error', 'Anda tidak memiliki akses ke aplikasi ini.');
+          return res.redirect('/applications');
+        }
+      }
+
       const [[app]] = await db.query(`
         SELECT a.*, u.nama AS leader_nama, kt.nama AS ketua_tester_nama
         FROM applications a
@@ -72,8 +95,16 @@ const appController = {
         SELECT ta.*, u.nama AS tester_nama FROM testing_assignments ta
         LEFT JOIN users u ON ta.tester_id = u.id WHERE ta.application_id = ?
       `, [id]);
+
+      // Ambil data BA yang ditugaskan
+      const [assignedBAs] = await db.query(`
+        SELECT baa.*, u.nama AS ba_nama FROM ba_assignments baa
+        LEFT JOIN users u ON baa.ba_id = u.id WHERE baa.application_id = ?
+      `, [id]);
+
       const [allTesters] = await db.query("SELECT id, nama FROM users WHERE role = 'tester' AND is_active = 1");
       const [allKetua] = await db.query("SELECT id, nama FROM users WHERE role = 'ketua_tester' AND is_active = 1");
+      const [allBA] = await db.query("SELECT id, nama FROM users WHERE role = 'business_analyst' AND is_active = 1");
 
       const [[bugStats]] = await db.query(`
         SELECT COUNT(*) AS total, SUM(status='open') AS open, SUM(status='in_progress') AS in_progress,
@@ -81,7 +112,11 @@ const appController = {
         FROM bugs WHERE application_id = ?
       `, [id]);
 
-      res.render('applications/detail', { title: app.nama_aplikasi, app, useCases, bugs, testers, allTesters, allKetua, bugStats });
+      res.render('applications/detail', { 
+        title: app.nama_aplikasi, 
+        app, useCases, bugs, testers, assignedBAs, 
+        allTesters, allKetua, allBA, bugStats 
+      });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Gagal memuat detail aplikasi.');
@@ -166,6 +201,29 @@ const appController = {
       console.error(err);
       req.flash('error', 'Gagal menyimpan use case.');
       res.redirect('/applications/' + req.body.application_id);
+    }
+  },
+
+  assignBA: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { ba_ids } = req.body;
+      
+      if (ba_ids) {
+        const ids = Array.isArray(ba_ids) ? ba_ids : [ba_ids];
+        for (const baId of ids) {
+          await db.query(
+            "INSERT IGNORE INTO ba_assignments (application_id, ba_id, assigned_by) VALUES (?,?,?)",
+            [id, baId, req.session.user.id]
+          );
+        }
+      }
+      req.flash('success', 'Business Analyst berhasil ditugaskan!');
+      res.redirect('/applications/' + id);
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Gagal menugaskan Business Analyst.');
+      res.redirect('/applications/' + req.params.id);
     }
   }
 };

@@ -52,13 +52,12 @@
                     <div class="col-md-9">
                       <%= bug.tester_nama %>
                     </div>
-                    <div class="col-md-3"><strong>Ditugaskan ke:</strong></div>
+                    <div class="col-md-3"><strong><%= (bug.assigned_role && bug.assigned_role.includes('DSI')) ? 'DSI:' : 'Programmer:' %></strong></div>
                     <div class="col-md-9">
                       <%= bug.programmer_nama || '-' %>
-                        <% if (bug.assigned_role) { %><small class="badge bg-secondary">
-                            <%= bug.assigned_role %>
-                          </small>
-                          <% } %>
+                      <% if (bug.assigned_role) { %>
+                        (<%= bug.assigned_role.includes('DSI') ? 'DSI' : 'Programmer' %>)
+                      <% } %>
                     </div>
                     <div class="col-md-3"><strong>Dilaporkan:</strong></div>
                     <div class="col-md-9"><small>
@@ -103,11 +102,21 @@
                   </div>
 
                   <% if (bug.screenshot) { %>
-                    <h6 class="fw-bold">Screenshot</h6>
-                    <a href="/uploads/<%= bug.screenshot %>" target="_blank">
-                      <img src="/uploads/<%= bug.screenshot %>" class="img-fluid rounded" style="max-height:300px">
-                    </a>
-                    <% } %>
+                    <% const isVideo = ['.mp4', '.webm', '.ogg'].some(ext => bug.screenshot.toLowerCase().endsWith(ext)); %>
+                    <h6 class="fw-bold"><%= isVideo ? 'Video Evidence' : 'Screenshot' %></h6>
+                    <div class="bg-light rounded p-2 text-center">
+                      <% if (isVideo) { %>
+                        <video controls class="img-fluid rounded" style="max-height:400px; width: 100%;">
+                          <source src="/uploads/<%= bug.screenshot %>" type="video/<%= bug.screenshot.split('.').pop() %>">
+                          Browser Anda tidak mendukung pemutar video.
+                        </video>
+                      <% } else { %>
+                        <a href="/uploads/<%= bug.screenshot %>" target="_blank">
+                          <img src="/uploads/<%= bug.screenshot %>" class="img-fluid rounded" style="max-height:400px">
+                        </a>
+                      <% } %>
+                    </div>
+                  <% } %>
 
                       <% if (bug.komentar_programmer) { %>
                         <hr>
@@ -122,7 +131,7 @@
 
     <div class="col-md-4">
 
-      <% if (helpers.hasRole(user, 'admin' , 'ketua_tester' , 'tim_leader' ) && bug.status==='open' ) { %>
+      <% if ((helpers.hasRole(user, 'ketua_tester') || (user.role === 'tester' && isAssignedTester)) && bug.status === 'open') { %>
         <div class="card shadow-sm mb-3">
           <div class="card-header bg-warning text-dark fw-bold"><i class="bi bi-person-check"></i> Tugaskan Bug</div>
           <div class="card-body">
@@ -188,16 +197,36 @@
                       <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-circle"></i> Verified -
                         Sudah Benar</button>
                     </form>
+                    <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST" class="mb-2">
+                      <input type="hidden" name="action" value="closed">
+                      <textarea name="catatan" class="form-control form-control-sm mb-2"
+                        placeholder="Catatan (wajib)" rows="2" required></textarea>
+                      <button type="submit" class="btn btn-warning w-100 text-dark"><i class="bi bi-info-circle"></i> Berhasil dengan Catatan</button>
+                    </form>
                     <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST">
                       <input type="hidden" name="action" value="rejected">
                       <textarea name="catatan" class="form-control form-control-sm mb-2"
-                        placeholder="Alasan penolakan..." rows="2"></textarea>
+                        placeholder="Alasan penolakan..." rows="2" required></textarea>
                       <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-x-circle"></i> Reject -
-                        Belum Benar</button>
+                        Gagal</button>
                     </form>
                   </div>
                 </div>
                 <% } %>
+              
+              <% if ((helpers.hasRole(user, 'ketua_tester') || (user.role === 'tester' && isAssignedTester)) && bug.status === 'in_progress') { %>
+                <div class="card shadow-sm mb-3 border-danger">
+                  <div class="card-header bg-danger text-white fw-bold">
+                    <i class="bi bi-x-circle"></i> Batalkan Penugasan
+                  </div>
+                  <div class="card-body">
+                    <p class="small text-muted mb-2">Batalkan jika programmer sedang sibuk agar bug bisa dikerjakan yang lain.</p>
+                    <form action="/bugs/<%= bug.id %>/unassign" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan penugasan ini?')">
+                      <button type="submit" class="btn btn-danger btn-sm w-100">Batalkan Sekarang</button>
+                    </form>
+                  </div>
+                </div>
+              <% } %>
 
                   <div class="card shadow-sm">
                     <div class="card-header bg-secondary text-white fw-bold"><i class="bi bi-clock-history"></i> Riwayat
@@ -257,12 +286,11 @@
 
       if (role === 'programmer') {
         roleSelect.innerHTML = `
-          <option value="Programmer Backend">Programmer Backend</option>
-          <option value="Programmer Frontend">Programmer Frontend</option>
+          <option value="Programmer">Programmer</option>
         `;
       } else if (role === 'dsi') {
         roleSelect.innerHTML = `
-          <option value="DSI (Desainer UI/UX)">DSI (Desainer UI/UX)</option>
+          <option value="DSI">DSI</option>
         `;
       }
     });

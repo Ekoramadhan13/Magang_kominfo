@@ -15,7 +15,26 @@ const helpers = {
     return moment(date).fromNow();
   },
   severityColor: (s) => ({ critical:'danger', major:'warning', minor:'info', trivial:'secondary' })[s] || 'secondary',
-  statusColor: (s) => ({ open:'danger', in_progress:'warning', fixed:'primary', verified:'success', closed:'success', rejected:'dark' })[s] || 'secondary',
+  statusColor: (s) => ({ open:'info', in_progress:'info', fixed:'info', verified:'success', closed:'warning', rejected:'danger' })[s] || 'secondary',
+  bugStatusLabel: (s) => {
+    if (!s) return 'Sedang Diproses';
+    return ({ 
+      open: 'Sedang Diproses', 
+      in_progress: 'Sedang Diproses', 
+      fixed: 'Sedang Diproses', 
+      verified: 'Berhasil', 
+      closed: 'Berhasil dengan catatan', 
+      rejected: 'Gagal' 
+    })[s] || 'Sedang Diproses';
+  },
+  bugStatusColor: (s) => ({ 
+    open: 'info', 
+    in_progress: 'info', 
+    fixed: 'info', 
+    verified: 'success', 
+    closed: 'warning', 
+    rejected: 'danger' 
+  })[s] || 'secondary',
   appStatusColor: (s) => ({ pending:'secondary', testing:'warning', in_progress:'primary', selesai:'success' })[s] || 'secondary',
   priorityColor: (s) => ({ high:'danger', medium:'warning', low:'info' })[s] || 'secondary',
   capitalize: (str) => {

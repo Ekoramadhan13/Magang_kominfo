@@ -22,11 +22,10 @@ router.get('/', isAuthenticated, async (req, res) => {
       bugWhere = 'b.tester_id = ?';
       appWhere = 'EXISTS (SELECT 1 FROM testing_assignments ta WHERE ta.application_id = a.id AND ta.tester_id = ?)';
       params = [user.id];
-    } else if (user.role === 'business_analyst') {
-      
-      appWhere = '1=1';
-      bugWhere = '1=1';
-      params = [];
+    } else if (user.role === 'business_analyst' || user.role === 'ba') {
+      appWhere = 'EXISTS (SELECT 1 FROM ba_assignments baa WHERE baa.application_id = a.id AND baa.ba_id = ?)';
+      bugWhere = 'EXISTS (SELECT 1 FROM ba_assignments baa WHERE baa.application_id = b.application_id AND baa.ba_id = ?)';
+      params = [user.id];
     } else if (['programmer', 'dsi'].includes(user.role)) {
       bugWhere = 'b.assigned_to = ?';
       appWhere = 'EXISTS (SELECT 1 FROM bugs b2 WHERE b2.application_id = a.id AND b2.assigned_to = ?)';

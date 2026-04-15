@@ -10,25 +10,35 @@
   <div class="card shadow-sm mb-3">
     <div class="card-body py-2">
       <form class="row g-2 align-items-end" method="GET">
-        <div class="col-auto">
+        <div class="col-md-2 col-6">
+          <label class="form-label small mb-1">Status</label>
           <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
             <option value="">Semua Status</option>
-            <option value="open" <%=typeof query!=='undefined' && query.status==='open' ?'selected':'' %>>Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="fixed">Fixed</option>
-            <option value="verified">Verified</option>
-            <option value="closed">Closed</option>
-            <option value="rejected">Rejected</option>
+            <option value="Berhasil" <%= query.status === 'Berhasil' ? 'selected' : '' %>>Berhasil</option>
+            <option value="Gagal" <%= query.status === 'Gagal' ? 'selected' : '' %>>Gagal</option>
+            <option value="Berhasil dengan catatan" <%= query.status === 'Berhasil dengan catatan' ? 'selected' : '' %>>Berhasil dengan catatan</option>
+            <option value="Sedang Diproses" <%= query.status === 'Sedang Diproses' ? 'selected' : '' %>>Sedang Diproses</option>
           </select>
         </div>
-        <div class="col-auto">
-          <select name="severity" class="form-select form-select-sm" onchange="this.form.submit()">
-            <option value="">Semua Severity</option>
-            <option value="critical">Critical</option>
-            <option value="major">Major</option>
-            <option value="minor">Minor</option>
-            <option value="trivial">Trivial</option>
+        <div class="col-md-2 col-6">
+          <label class="form-label small mb-1">Dari Tanggal</label>
+          <input type="date" name="start_date" class="form-control form-control-sm" value="<%= query.start_date || '' %>" onchange="this.form.submit()">
+        </div>
+        <div class="col-md-2 col-6">
+          <label class="form-label small mb-1">Sampai Tanggal</label>
+          <input type="date" name="end_date" class="form-control form-control-sm" value="<%= query.end_date || '' %>" onchange="this.form.submit()">
+        </div>
+        <div class="col-md-2 col-6">
+          <label class="form-label small mb-1">Tester</label>
+          <select name="tester_id" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Semua Tester</option>
+            <% allTesters.forEach(t => { %>
+              <option value="<%= t.id %>" <%= query.tester_id == t.id ? 'selected' : '' %>><%= t.nama %></option>
+            <% }) %>
           </select>
+        </div>
+        <div class="col-auto ms-auto">
+          <a href="/bugs" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a>
         </div>
       </form>
     </div>
@@ -73,8 +83,8 @@
                 <td><span class="badge bg-<%= helpers.priorityColor(bug.priority) %>">
                     <%= bug.priority %>
                   </span></td>
-                <td><span class="badge bg-<%= helpers.statusColor(bug.status) %>">
-                    <%= helpers.capitalize(bug.status) %>
+                <td><span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>">
+                    <%= helpers.bugStatusLabel(bug.status) %>
                   </span></td>
                 <td><small>
                     <%= bug.tester_nama %>
