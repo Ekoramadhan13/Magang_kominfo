@@ -34,12 +34,7 @@
               </select>
             </div>
           </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Deskripsi</label>
-            <textarea name="deskripsi" class="form-control" rows="4">
-              <%= app.deskripsi || '' %>
-            </textarea>
-          </div>
+            <textarea name="deskripsi" class="form-control" rows="4"><%= app.deskripsi || '' %></textarea>
           <div class="d-flex gap-2">
             <button type="submit" class="btn btn-warning">
               <i class="bi bi-save"></i> Update

@@ -2,31 +2,54 @@
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="fw-bold"><i class="bi bi-bug text-danger"></i> Daftar Bugs</h4>
-    <% if (helpers.hasRole(user, 'tester' , 'ketua_tester' )) { %>
+    <% if (helpers.hasRole(user, 'tester', 'ketua_tester')) { %>
       <a href="/bugs/create" class="btn btn-danger"><i class="bi bi-plus-lg"></i> Laporkan Bug</a>
-      <% } %>
+    <% } %>
   </div>
 
+  <!-- Filter -->
   <div class="card shadow-sm mb-3">
     <div class="card-body py-2">
       <form class="row g-2 align-items-end" method="GET">
         <div class="col-md-2 col-6">
+          <label class="form-label small mb-1">Aplikasi</label>
+          <select name="application_id" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Semua Aplikasi</option>
+            <% allApps.forEach(app => { %>
+              <option value="<%= app.id %>" <%= query.application_id == app.id ? 'selected' : '' %>><%= app.nama_aplikasi %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-2 col-6">
+          <label class="form-label small mb-1">Kategori</label>
+          <select name="kategori" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Semua Kategori</option>
+            <option value="Berhasil"               <%= query.kategori === 'Berhasil'               ? 'selected' : '' %>>Berhasil</option>
+            <option value="Gagal"                  <%= query.kategori === 'Gagal'                  ? 'selected' : '' %>>Gagal</option>
+            <option value="Berhasil dengan catatan"<%= query.kategori === 'Berhasil dengan catatan'? 'selected' : '' %>>Berhasil Dengan Catatan</option>
+          </select>
+        </div>
+        <div class="col-md-2 col-6">
           <label class="form-label small mb-1">Status</label>
           <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
             <option value="">Semua Status</option>
-            <option value="Berhasil" <%= query.status === 'Berhasil' ? 'selected' : '' %>>Berhasil</option>
-            <option value="Gagal" <%= query.status === 'Gagal' ? 'selected' : '' %>>Gagal</option>
-            <option value="Berhasil dengan catatan" <%= query.status === 'Berhasil dengan catatan' ? 'selected' : '' %>>Berhasil dengan catatan</option>
-            <option value="Sedang Diproses" <%= query.status === 'Sedang Diproses' ? 'selected' : '' %>>Sedang Diproses</option>
+            <option value="open"        <%= query.status === 'open'        ? 'selected' : '' %>>Open</option>
+            <option value="in_progress" <%= query.status === 'in_progress' ? 'selected' : '' %>>In Progress</option>
+            <option value="fixed"       <%= query.status === 'fixed'       ? 'selected' : '' %>>Fixed</option>
+            <option value="verified"    <%= query.status === 'verified'    ? 'selected' : '' %>>Verified</option>
+            <option value="closed"      <%= query.status === 'closed'      ? 'selected' : '' %>>Closed</option>
+            <option value="rejected"    <%= query.status === 'rejected'    ? 'selected' : '' %>>Rejected</option>
           </select>
         </div>
         <div class="col-md-2 col-6">
           <label class="form-label small mb-1">Dari Tanggal</label>
-          <input type="date" name="start_date" class="form-control form-control-sm" value="<%= query.start_date || '' %>" onchange="this.form.submit()">
+          <input type="date" name="start_date" class="form-control form-control-sm"
+                 value="<%= query.start_date || '' %>" onchange="this.form.submit()">
         </div>
         <div class="col-md-2 col-6">
           <label class="form-label small mb-1">Sampai Tanggal</label>
-          <input type="date" name="end_date" class="form-control form-control-sm" value="<%= query.end_date || '' %>" onchange="this.form.submit()">
+          <input type="date" name="end_date" class="form-control form-control-sm"
+                 value="<%= query.end_date || '' %>" onchange="this.form.submit()">
         </div>
         <div class="col-md-2 col-6">
           <label class="form-label small mb-1">Tester</label>
@@ -38,7 +61,9 @@
           </select>
         </div>
         <div class="col-auto ms-auto">
-          <a href="/bugs" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a>
+          <a href="/bugs" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
+          </a>
         </div>
       </form>
     </div>
@@ -52,9 +77,9 @@
             <tr>
               <th>#ID</th>
               <th>Judul Bug</th>
-              <th>Aplikasi</th>
-              <th>Severity</th>
-              <th>Priority</th>
+              <th>Nama Aplikasi</th>
+              <th>Use Case</th>
+              <th>Kategori</th>
               <th>Status</th>
               <th>Tester</th>
               <th>Tanggal</th>
@@ -62,55 +87,60 @@
             </tr>
           </thead>
           <tbody>
-            <% bugs.forEach(bug=> { %>
-              <tr>
-                <td><span class="text-muted">#<%= bug.id %></span></td>
-                <td>
-                  <a href="/bugs/<%= bug.id %>" class="text-decoration-none fw-semibold">
-                    <%= helpers.truncate(bug.judul, 40) %>
-                  </a>
-                </td>
-                <td><small class="text-muted">
-                    <%= bug.nama_aplikasi %>
-                  </small></td>
-                <td>
-                  <span class="badge bg-<%= helpers.severityColor(bug.severity) %>">
-                    <% if (bug.severity==='critical' ) { %><i class="bi bi-exclamation-triangle-fill"></i>
-                      <% } %>
-                        <%= bug.severity %>
+            <% bugs.forEach(bug => { %>
+            <tr>
+              <td><span class="text-muted">#<%= bug.id %></span></td>
+              <td>
+                <a href="/bugs/<%= bug.id %>" class="text-decoration-none fw-semibold text-dark">
+                  <%= helpers.truncate(bug.judul, 35) %>
+                </a>
+              </td>
+              <td><small class="text-muted"><%= bug.nama_aplikasi %></small></td>
+              <td><small class="text-muted"><%= bug.use_case_judul || '-' %></small></td>
+              <td>
+                <% if (['verified','rejected','closed'].includes(bug.status)) { %>
+                  <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>-subtle
+                               text-<%= helpers.bugStatusColor(bug.status) %>
+                               border border-<%= helpers.bugStatusColor(bug.status) %>"
+                        style="font-size:0.7rem;">
+                    <%= helpers.bugOutcomeLabel(bug.status) %>
                   </span>
-                </td>
-                <td><span class="badge bg-<%= helpers.priorityColor(bug.priority) %>">
-                    <%= bug.priority %>
-                  </span></td>
-                <td><span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>">
-                    <%= helpers.bugStatusLabel(bug.status) %>
-                  </span></td>
-                <td><small>
-                    <%= bug.tester_nama %>
-                  </small></td>
-                <td><small>
-                    <%= helpers.formatDate(bug.created_at, 'DD/MM/YY' ) %>
-                  </small></td>
-                <td>
-                  <a href="/bugs/<%= bug.id %>" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-eye"></i> Detail
-                  </a>
-                </td>
-              </tr>
-              <% }) %>
-                <% if (bugs.length===0) { %>
-                  <tr>
-                    <td colspan="9" class="text-center text-muted py-4">
-                      <i class="bi bi-emoji-smile fs-3 d-block mb-2"></i>
-                      Tidak ada bug ditemukan!
-                    </td>
-                  </tr>
-                  <% } %>
+                <% } else { %>
+                  <span class="text-muted small">-</span>
+                <% } %>
+              </td>
+              <td>
+                <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>">
+                  <%= helpers.bugStatusLabel(bug.status) %>
+                </span>
+              </td>
+              <td><small><%= bug.tester_nama %></small></td>
+              <td><small><%= helpers.formatDate(bug.created_at, 'DD/MM/YY') %></small></td>
+              <td>
+                <a href="/bugs/<%= bug.id %>" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <% if (helpers.hasRole(user, 'ketua_tester') || (user.role === 'tester' && bug.tester_id === user.id) || helpers.hasRole(user, 'admin')) { %>
+                <form action="/bugs/<%= bug.id %>?_method=DELETE" method="POST" class="d-inline"
+                      onsubmit="return confirm('Hapus bug ini?')">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+                <% } %>
+              </td>
+            </tr>
+            <% }) %>
+            <% if (bugs.length === 0) { %>
+            <tr>
+              <td colspan="9" class="text-center text-muted py-4">
+                <i class="bi bi-emoji-smile fs-3 d-block mb-2"></i>
+                Tidak ada bug ditemukan!
+              </td>
+            </tr>
+            <% } %>
           </tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <%- include('../partials/footer') %>
+<%- include('../partials/footer') %>

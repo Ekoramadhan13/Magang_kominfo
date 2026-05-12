@@ -1,338 +1,361 @@
 <%- include('../partials/header') %>
 
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="fw-bold"><i class="bi bi-grid text-primary"></i>
-      <%= app.nama_aplikasi %>
-    </h4>
-    <div class="d-flex gap-2">
+    <h4 class="fw-bold"><i class="bi bi-grid text-primary"></i> <%= app.nama_aplikasi %></h4>
+    <div class="d-flex gap-2 flex-wrap">
       <span class="badge bg-<%= helpers.appStatusColor(app.status) %> fs-6">
         <%= helpers.capitalize(app.status) %>
       </span>
-      <% if (helpers.hasRole(user, 'tim_leader' , 'admin' )) { %>
-        <a href="/applications/<%= app.id %>/edit" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
-        <% } %>
-          <a href="/applications" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
-    </div>
-  </div>
-
-  <div class="row g-3 mb-4">
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-primary text-white fw-bold"><i class="bi bi-info-circle"></i> Info Aplikasi</div>
-        <div class="card-body">
-          <table class="table table-sm table-borderless">
-            <tr>
-              <th>Versi</th>
-              <td>
-                <%= app.versi || '-' %>
-              </td>
-            </tr>
-            <tr>
-              <th>Tim Leader</th>
-              <td>
-                <%= app.leader_nama || '-' %>
-              </td>
-            </tr>
-            <tr>
-              <th>Ketua Tester</th>
-              <td>
-                <%= app.ketua_tester_nama || '-' %>
-              </td>
-            </tr>
-            <tr>
-              <th>Tgl Submit</th>
-              <td>
-                <%= helpers.formatDate(app.tanggal_submit) %>
-              </td>
-            </tr>
-            <tr>
-              <th>Deadline</th>
-              <td>
-                <%= helpers.formatDate(app.tanggal_deadline) %>
-              </td>
-            </tr>
-          </table>
-          <% if (app.deskripsi) { %>
-            <hr>
-            <p class="small text-muted">
-              <%= app.deskripsi %>
-            </p>
-            <% } %>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-danger text-white fw-bold"><i class="bi bi-bar-chart"></i> Statistik Bug</div>
-        <div class="card-body">
-          <% const statItems=[ { label: 'Open' , val: bugStats.open, color: 'danger' }, { label: 'In Progress' , val:
-            bugStats.in_progress, color: 'warning' }, { label: 'Fixed' , val: bugStats.fixed, color: 'primary' }, {
-            label: 'Verified' , val: bugStats.verified, color: 'success' }, { label: 'Closed' , val: bugStats.closed,
-            color: 'success' } ] %>
-            <% statItems.forEach(s=> { %>
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <span>
-                  <%= s.label %>
-                </span>
-                <span class="badge bg-<%= s.color %>">
-                  <%= s.val || 0 %>
-                </span>
-              </div>
-              <% }) %>
-                <hr>
-                <div class="d-flex justify-content-between fw-bold">
-                  <span>Total</span><span>
-                    <%= bugStats.total || 0 %>
-                  </span>
-                </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-success text-white fw-bold"><i class="bi bi-people"></i> Tim Tester</div>
-        <div class="card-body">
-          <% if (testers.length> 0) { %>
-            <% testers.forEach(t=> { %>
-              <div class="d-flex align-items-center mb-2">
-                <i class="bi bi-person-circle text-success me-2"></i>
-                <div>
-                  <div class="fw-semibold">
-                    <%= t.tester_nama %>
-                  </div>
-                  <small
-                    class="badge bg-<%= t.status==='done'?'success':t.status==='on_going'?'warning':'secondary' %>">
-                    <%= t.status %>
-                  </small>
-                </div>
-              </div>
-              <% }) %>
-                <% } else { %>
-                  <p class="text-muted small">Belum ada tester ditugaskan</p>
-                  <% } %>
-        </div>
-      </div>
-    </div>
-  </div>
-
-
-  <% if (helpers.hasRole(user, 'ketua_tester' , 'admin' )) { %>
-    <div class="card shadow-sm mb-4">
-      <div class="card-header bg-success text-white fw-bold"><i class="bi bi-person-check"></i> Tugaskan Tester</div>
-      <div class="card-body">
-        <form action="/applications/<%= app.id %>/assign" method="POST">
-          <div class="row g-3">
-            <div class="col-md-4">
-              <label class="form-label">Ketua Tim Tester</label>
-              <select name="ketua_tester_id" class="form-select">
-                <option value="">-- Pilih Ketua --</option>
-                <% allKetua.forEach(k=> { %>
-                  <option value="<%= k.id %>" <%=app.ketua_tester_id==k.id?'selected':'' %>><%= k.nama %>
-                  </option>
-                  <% }) %>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Pilih Tester (bisa lebih dari satu)</label>
-              <select name="tester_ids" class="form-select" multiple>
-                <% allTesters.forEach(t=> { %>
-                  <option value="<%= t.id %>">
-                    <%= t.nama %>
-                  </option>
-                  <% }) %>
-              </select>
-              <small class="text-muted">Tahan Ctrl untuk pilih lebih dari satu</small>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-              <button type="submit" class="btn btn-success w-100"><i class="bi bi-check"></i> Assign</button>
-            </div>
-          </div>
+      <% if (app.testing_finished) { %>
+        <span class="badge bg-success fs-6"><i class="bi bi-check-circle"></i> Testing Selesai</span>
+      <% } %>
+      <% if (helpers.hasRole(user, 'tim_leader', 'admin')) { %>
+        <a href="/applications/<%= app.id %>/edit" class="btn btn-sm btn-warning">
+          <i class="bi bi-pencil"></i> Edit
+        </a>
+        <form action="/applications/<%= app.id %>?_method=DELETE" method="POST" class="d-inline"
+              onsubmit="return confirm('Yakin hapus aplikasi ini beserta seluruh bug, use case, dan penugasan?')">
+          <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Hapus Aplikasi</button>
         </form>
-      </div>
+      <% } %>
+      <a href="/applications" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
     </div>
-    <% } %>
+  </div>
 
-  <% if (helpers.hasRole(user, 'tim_leader' , 'admin' )) { %>
-    <div class="card shadow-sm mb-4 border-primary">
-      <div class="card-header bg-primary text-white fw-bold"><i class="bi bi-person-plus"></i> Tugaskan Business Analyst</div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-7">
-            <form action="/applications/<%= app.id %>/assign-ba" method="POST">
-              <div class="row g-3">
-                <div class="col-md-9">
-                  <label class="form-label">Pilih Business Analyst (BA)</label>
-                  <select name="ba_ids" class="form-select" multiple required>
-                    <% allBA.forEach(ba=> { %>
-                      <option value="<%= ba.id %>" <%= assignedBAs.some(a => a.ba_id === ba.id) ? 'disabled' : '' %>>
-                        <%= ba.nama %> <%= assignedBAs.some(a => a.ba_id === ba.id) ? '(Sudah Ditugaskan)' : '' %>
-                      </option>
-                    <% }) %>
-                  </select>
-                  <small class="text-muted">Tahan Ctrl untuk pilih lebih dari satu</small>
-                </div>
-                <div class="col-md-3 d-flex align-items-end">
-                  <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i> Assign</button>
-                </div>
-              </div>
-            </form>
+  <!-- ── INFO CARDS ──────────────────────────────────────────────────────────── -->
+  <div class="row g-3 mb-4">
+    <!-- Info Aplikasi -->
+    <div class="col-md-5">
+      <div class="card shadow-sm h-100 border-0">
+        <div class="card-header bg-primary text-white fw-bold py-3">
+          <i class="bi bi-info-circle"></i> Info Aplikasi
+        </div>
+        <div class="card-body">
+          <div class="row mb-2">
+            <div class="col-4 fw-bold small text-uppercase">Versi</div>
+            <div class="col-8 small"><%= app.versi || '-' %></div>
           </div>
-          <div class="col-md-5 border-start">
-            <label class="form-label fw-bold">BA yang Bertugas:</label>
-            <% if (assignedBAs.length > 0) { %>
-              <div class="list-group list-group-flush">
-                <% assignedBAs.forEach(ba => { %>
-                  <div class="list-group-item d-flex justify-content-between align-items-center bg-light rounded mb-1">
-                    <span><i class="bi bi-person-badge text-primary me-2"></i><%= ba.ba_nama %></span>
-                    <i class="bi bi-check-circle-fill text-success"></i>
-                  </div>
-                <% }) %>
-              </div>
-            <% } else { %>
-              <p class="text-muted small">Belum ada BA ditugaskan.</p>
-            <% } %>
+          <div class="row mb-2">
+            <div class="col-4 fw-bold small text-uppercase">URL</div>
+            <div class="col-8 small">
+              <% if (app.url) { %>
+                <a href="<%= app.url %>" target="_blank" class="text-decoration-none">
+                  <i class="bi bi-box-arrow-up-right"></i><br>
+                  <span class="text-break" style="font-size: 0.75rem;"><%= app.url %></span>
+                </a>
+              <% } else { %> - <% } %>
+            </div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-4 fw-bold small text-uppercase">Tim Leader</div>
+            <div class="col-8 small"><%= app.leader_nama || '-' %></div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-4 fw-bold small text-uppercase">Ketua Tester</div>
+            <div class="col-8 small"><%= ketuaTester %></div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-4 fw-bold small text-uppercase">Tgl Submit</div>
+            <div class="col-8 small"><%= helpers.formatDate(app.tanggal_submit, 'DD MMM YYYY') %></div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-4 fw-bold small text-uppercase">Deadline</div>
+            <div class="col-8 small fw-bold <%= (app.tanggal_deadline && new Date(app.tanggal_deadline) < new Date() && app.status !== 'selesai') ? 'text-danger' : '' %>">
+              <%= helpers.formatDate(app.tanggal_deadline, 'DD MMM YYYY') %>
+            </div>
+          </div>
+          
+          <hr>
+          <div class="fw-bold small text-uppercase text-muted mb-2">Deskripsi Aplikasi</div>
+          <div class="text-muted" style="font-size: 0.9rem;">
+            <%= app.deskripsi %>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Statistik Bug -->
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100 border-0">
+        <div class="card-header bg-danger text-white fw-bold py-3">
+          <i class="bi bi-bar-chart"></i> Statistik Bug
+        </div>
+        <div class="card-body">
+          <% const statItems = [
+            { label: 'Open',       val: bugStats.open,        color: 'danger'    },
+            { label: 'In Progress',val: bugStats.in_progress, color: 'warning'   },
+            { label: 'Fixed',      val: bugStats.fixed,       color: 'primary'   },
+            { label: 'Verified',   val: bugStats.verified,    color: 'success'   },
+            { label: 'Closed',     val: bugStats.closed,      color: 'secondary' },
+            { label: 'Rejected',   val: bugStats.rejected,    color: 'dark'      }
+          ]; %>
+          <% statItems.forEach(s => { %>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small"><%= s.label %></span>
+              <span class="badge bg-<%= s.color %>"><%= s.val || 0 %></span>
+            </div>
+          <% }) %>
+          <hr>
+          <div class="d-flex justify-content-between fw-bold">
+            <span class="small">Total</span><span><%= bugStats.total || 0 %></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tim -->
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100 border-0">
+        <div class="card-header bg-success text-white fw-bold py-3">
+          <i class="bi bi-people"></i> Tim Proyek
+        </div>
+        <div class="card-body">
+          <!-- Developer/DSI -->
+          <% if (assignedDevs.length > 0) { %>
+            <p class="small fw-bold text-muted mb-1 text-uppercase" style="font-size: 0.7rem;">Programmer/DSI:</p>
+            <% assignedDevs.forEach(d => { %>
+              <div class="d-flex align-items-center mb-1">
+                <i class="bi bi-code-slash text-info me-2"></i>
+                <span class="small"><strong><%= d.dev_nama %></strong>
+                  <span class="badge bg-info-subtle text-info border border-info" style="font-size:0.6rem;">
+                    <%= d.role.toUpperCase() %>
+                  </span>
+                </span>
+              </div>
+            <% }) %>
+            <hr class="my-2">
+          <% } %>
+
+          <!-- BA -->
+          <% if (assignedBAs.length > 0) { %>
+            <p class="small fw-bold text-muted mb-1 text-uppercase" style="font-size: 0.7rem;">Business Analyst:</p>
+            <% assignedBAs.forEach(ba => { %>
+              <div class="d-flex align-items-center mb-1">
+                <i class="bi bi-person-badge text-secondary me-2"></i>
+                <span class="small"><strong><%= ba.ba_nama %></strong></span>
+              </div>
+            <% }) %>
+            <hr class="my-2">
+          <% } %>
+
+          <!-- Tester -->
+          <% if (testers.length > 0) { %>
+            <p class="small fw-bold text-muted mb-1 text-uppercase" style="font-size: 0.7rem;">Tester:</p>
+            <% testers.forEach(t => { %>
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <div>
+                  <i class="bi bi-person-circle text-success me-2"></i>
+                  <span class="small"><strong><%= t.tester_nama %></strong></span>
+                </div>
+                <small class="badge bg-<%= t.status==='done'?'success':(t.status==='on_going'?'primary':'secondary') %>" style="font-size: 0.65rem;">
+                  <%= t.status==='done'?'Selesai':(t.status==='on_going'?'On Progress':'Pending') %>
+                </small>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <p class="text-muted small mb-0">Belum ada tester ditugaskan.</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TOMBOL KERJAKAN SEKARANG (untuk Tester yang baru ditugaskan / status 'pending') ──────────────── -->
+  <% if (user.role === 'tester' && isAssignedTester) { %>
+    <% const myAssignment = testers.find(t => t.tester_id === user.id); %>
+    <% if (myAssignment && myAssignment.status === 'pending') { %>
+      <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-header bg-primary text-white fw-bold">
+          <i class="bi bi-play-circle-fill"></i> Tugas Baru Tersedia
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-between gap-3">
+          <p class="mb-0 small text-muted">
+            Ketua Tester telah menugaskan Anda ke aplikasi ini. Klik tombol di samping untuk mulai mengerjakan pengujian.
+          </p>
+          <form action="/applications/<%= app.id %>/start-testing" method="POST">
+            <button type="submit" class="btn btn-primary text-nowrap">
+              <i class="bi bi-play-fill"></i> Kerjakan Sekarang
+            </button>
+          </form>
+        </div>
+      </div>
+    <% } %>
   <% } %>
 
+  <!-- ── TOMBOL SELESAI TESTING (untuk Ketua Tester & Tester) ────────────────── -->
+  <% if ((helpers.hasRole(user, 'ketua_tester') || (user.role === 'tester' && isAssignedTester)) && !app.testing_finished && app.status !== 'selesai') { %>
+  <div class="card shadow-sm mb-4 border-danger">
+    <div class="card-header bg-danger text-white fw-bold">
+      <i class="bi bi-flag-fill"></i> Selesai Testing
+    </div>
+    <div class="card-body d-flex align-items-center gap-3">
+      <p class="mb-0 small text-muted">
+        Klik tombol ini jika testing sudah selesai. Setelah diklik, Programmer/DSI <strong>tidak dapat</strong> mengerjakan task lagi.
+      </p>
+      <form action="/applications/<%= app.id %>/finish-testing" method="POST"
+            onsubmit="return confirm('Yakin ingin menyelesaikan testing? Programmer/DSI tidak dapat mengerjakan bug lagi setelah ini.')">
+        <button type="submit" class="btn btn-danger text-nowrap">
+          <i class="bi bi-check-circle-fill"></i> Selesai Testing
+        </button>
+      </form>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- ── TUGASKAN TESTER (Ketua Tester) ────────────────────────────────────── -->
+  <% if (helpers.hasRole(user, 'ketua_tester', 'admin') && !app.testing_finished) { %>
   <div class="card shadow-sm mb-4">
-        <div class="card-header bg-info text-white fw-bold d-flex justify-content-between">
-          <span><i class="bi bi-list-check"></i> Use Cases (<%= useCases.length %>)</span>
-        </div>
-        <div class="card-body">
-          <% if (helpers.hasRole(user, 'tim_leader' , 'admin' )) { %>
-            <button class="btn btn-sm btn-info mb-3" data-bs-toggle="collapse" data-bs-target="#formUseCase">
-              <i class="bi bi-plus"></i> Tambah Use Case
-            </button>
-            <div class="collapse mb-3" id="formUseCase">
-              <form action="/applications/use-case/store" method="POST" class="border p-3 rounded bg-light">
-                <input type="hidden" name="application_id" value="<%= app.id %>">
-                <div class="mb-2">
-                  <label class="form-label">Judul Use Case</label>
-                  <input type="text" name="judul" class="form-control" required>
-                </div>
-                <div class="mb-2">
-                  <label class="form-label">Deskripsi</label>
-                  <textarea name="deskripsi" class="form-control" rows="2"></textarea>
-                </div>
-                <div class="row">
-                  <div class="col-md-6 mb-2">
-                    <label class="form-label">Langkah-langkah</label>
-                    <textarea name="langkah_langkah" class="form-control" rows="3"></textarea>
-                  </div>
-                  <div class="col-md-6 mb-2">
-                    <label class="form-label">Expected Result</label>
-                    <textarea name="expected_result" class="form-control" rows="3"></textarea>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-info btn-sm"><i class="bi bi-save"></i> Simpan Use Case</button>
-              </form>
+    <div class="card-header bg-success text-white fw-bold">
+      <i class="bi bi-person-check"></i> Tugaskan Tester
+    </div>
+    <div class="card-body">
+      <form action="/applications/<%= app.id %>/assign" method="POST">
+        <p class="text-muted small mb-2">Pilih Tester yang akan ditugaskan (centang satu atau lebih):</p>
+        <div class="row g-2 mb-3">
+          <% allTesters.forEach(t => { %>
+          <div class="col-md-4 col-6">
+            <div class="form-check border rounded p-2">
+              <input class="form-check-input" type="checkbox"
+                     name="tester_ids" value="<%= t.id %>"
+                     id="tester_<%= t.id %>"
+                     <%= testers.some(ta => ta.tester_id === t.id) ? 'disabled checked' : '' %>>
+              <label class="form-check-label" for="tester_<%= t.id %>">
+                <i class="bi bi-person-circle text-success me-1"></i>
+                <%= t.nama %>
+                <% if (testers.some(ta => ta.tester_id === t.id)) { %>
+                  <span class="badge bg-success-subtle text-success border border-success ms-1" style="font-size:0.6rem;">
+                    Sudah
+                  </span>
+                <% } %>
+              </label>
             </div>
-            <% } %>
+          </div>
+          <% }) %>
+        </div>
+        <button type="submit" class="btn btn-success btn-sm">
+          <i class="bi bi-check"></i> Assign Tester
+        </button>
+      </form>
+    </div>
+  </div>
+  <% } %>
 
-              <% if (useCases.length> 0) { %>
-                <div class="accordion" id="accordionUC">
-                  <% useCases.forEach((uc, i)=> { %>
-                    <div class="accordion-item">
-                      <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                          data-bs-target="#uc<%= uc.id %>">
-                          <strong>#<%= i+1 %></strong>&nbsp;<%= uc.judul %>
-                        </button>
-                      </h2>
-                      <div id="uc<%= uc.id %>" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                          <% if (uc.deskripsi) { %>
-                            <p>
-                              <%= uc.deskripsi %>
-                            </p>
-                            <% } %>
-                              <div class="row">
-                                <% if (uc.langkah_langkah) { %>
-                                  <div class="col-md-6">
-                                    <strong>Langkah-langkah:</strong>
-                                    <pre class="bg-light p-2 rounded small"><%= uc.langkah_langkah %></pre>
-                                  </div>
-                                  <% } %>
-                                    <% if (uc.expected_result) { %>
-                                      <div class="col-md-6">
-                                        <strong>Expected Result:</strong>
-                                        <pre class="bg-light p-2 rounded small"><%= uc.expected_result %></pre>
-                                      </div>
-                                      <% } %>
-                              </div>
-                        </div>
-                      </div>
-                    </div>
-                    <% }) %>
+  <!-- ── USE CASES ──────────────────────────────────────────────────────────── -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-info text-dark fw-bold d-flex justify-content-between">
+      <span><i class="bi bi-list-check"></i> Use Cases (<%= useCases.length %>)</span>
+    </div>
+    <div class="card-body">
+
+
+      <% if (useCases.length > 0) { %>
+      <div class="accordion" id="accordionUC">
+        <% useCases.forEach((uc, i) => { %>
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#uc<%= uc.id %>">
+              <strong>#<%= i+1 %></strong>&nbsp;<%= uc.judul %>
+              <% if (uc.role) { %>
+                <span class="badge bg-warning text-dark ms-2" style="font-size:0.65rem;"><%= uc.role %></span>
+              <% } %>
+            </button>
+          </h2>
+          <div id="uc<%= uc.id %>" class="accordion-collapse collapse">
+            <div class="accordion-body">
+              <% if (uc.deskripsi) { %><p class="mb-2"><%= uc.deskripsi %></p><% } %>
+              <div class="row">
+                <% if (uc.langkah_langkah) { %>
+                <div class="col-md-6">
+                  <strong>Langkah-langkah:</strong>
+                  <pre class="bg-light p-2 rounded small"><%= uc.langkah_langkah %></pre>
                 </div>
-                <% } else { %>
-                  <p class="text-muted">Belum ada use case.</p>
-                  <% } %>
-        </div>
-      </div>
-
-
-      <div class="card shadow-sm">
-        <div class="card-header bg-danger text-white fw-bold d-flex justify-content-between">
-          <span><i class="bi bi-bug"></i> Bugs Ditemukan (<%= bugs.length %>)</span>
-          <% if (helpers.hasRole(user, 'tester' , 'ketua_tester' )) { %>
-            <a href="/bugs/create?appId=<%= app.id %>" class="btn btn-sm btn-light text-danger"><i
-                class="bi bi-plus"></i> Laporkan Bug</a>
-            <% } %>
-        </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Judul</th>
-                  <th>Severity</th>
-                  <th>Priority</th>
-                  <th>Status</th>
-                  <th>Tester</th>
-                  <th>Tgl</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% bugs.forEach(bug=> { %>
-                  <tr>
-                    <td>
-                      <%= helpers.truncate(bug.judul, 40) %>
-                    </td>
-                    <td><span class="badge bg-<%= helpers.severityColor(bug.severity) %>">
-                        <%= bug.severity %>
-                      </span></td>
-                    <td><span class="badge bg-<%= helpers.priorityColor(bug.priority) %>">
-                        <%= bug.priority %>
-                      </span></td>
-                    <td><span class="badge bg-<%= helpers.statusColor(bug.status) %>">
-                        <%= helpers.capitalize(bug.status) %>
-                      </span></td>
-                    <td><small>
-                        <%= bug.tester_nama %>
-                      </small></td>
-                    <td><small>
-                        <%= helpers.formatDate(bug.created_at, 'DD/MM/YY' ) %>
-                      </small></td>
-                    <td><a href="/bugs/<%= bug.id %>" class="btn btn-sm btn-outline-primary"><i
-                          class="bi bi-eye"></i></a></td>
-                  </tr>
-                  <% }) %>
-                    <% if (bugs.length===0) { %>
-                      <tr>
-                        <td colspan="7" class="text-center text-muted py-3">Belum ada bug dilaporkan</td>
-                      </tr>
-                      <% } %>
-              </tbody>
-            </table>
+                <% } %>
+                <% if (uc.expected_result) { %>
+                <div class="col-md-6">
+                  <strong>Expected Result:</strong>
+                  <pre class="bg-light p-2 rounded small"><%= uc.expected_result %></pre>
+                </div>
+                <% } %>
+              </div>
+            </div>
           </div>
         </div>
+        <% }) %>
       </div>
+      <% } else { %>
+        <p class="text-muted mb-0">Belum ada use case.</p>
+      <% } %>
+    </div>
+  </div>
 
-      <%- include('../partials/footer') %>
+  <!-- ── DAFTAR BUG ──────────────────────────────────────────────────────────── -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-danger text-white fw-bold d-flex justify-content-between">
+      <span><i class="bi bi-bug"></i> Bugs Ditemukan (<%= bugs.length %>)</span>
+      <% if (helpers.hasRole(user, 'tester', 'ketua_tester') && !app.testing_finished) { %>
+        <a href="/bugs/create?appId=<%= app.id %>" class="btn btn-sm btn-light text-danger">
+          <i class="bi bi-plus"></i> Laporkan Bug
+        </a>
+      <% } %>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Judul Bug</th>
+              <th>Use Case</th>
+              <th>Kategori</th>
+              <th>Status</th>
+              <th>Tester</th>
+              <th>Tanggal</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% bugs.forEach(bug => { %>
+            <tr>
+              <td><%= helpers.truncate(bug.judul, 40) %></td>
+              <td><small class="text-muted"><%= bug.use_case_judul || '-' %></small></td>
+              <td>
+                <% if (['verified','rejected','closed'].includes(bug.status)) { %>
+                  <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>" style="font-size:0.7rem;">
+                    <%= helpers.bugOutcomeLabel(bug.status) %>
+                  </span>
+                <% } else { %>
+                  <span class="text-muted small">-</span>
+                <% } %>
+              </td>
+              <td>
+                <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>">
+                  <%= helpers.bugStatusLabel(bug.status) %>
+                </span>
+              </td>
+              <td><small><%= bug.tester_nama %></small></td>
+              <td><small><%= helpers.formatDate(bug.created_at, 'DD/MM/YY') %></small></td>
+              <td>
+                <a href="/bugs/<%= bug.id %>" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <% if ((helpers.hasRole(user, 'ketua_tester') || (user.role === 'tester' && bug.tester_id === user.id)) && !app.testing_finished) { %>
+                <form action="/bugs/<%= bug.id %>?_method=DELETE" method="POST" class="d-inline"
+                      onsubmit="return confirm('Hapus bug ini?')">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+                <% } %>
+              </td>
+            </tr>
+            <% }) %>
+            <% if (bugs.length === 0) { %>
+            <tr>
+              <td colspan="7" class="text-center text-muted py-3">Belum ada bug dilaporkan</td>
+            </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<%- include('../partials/footer') %>

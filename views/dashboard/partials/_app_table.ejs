@@ -1,0 +1,58 @@
+<div class="overflow-x-auto">
+  <table class="w-full text-left border-collapse">
+    <thead>
+      <tr class="bg-slate-50/50 border-b border-slate-100">
+        <th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400">Aplikasi</th>
+        <th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 text-center">Status</th>
+        <th class="px-6 py-4"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-50">
+      <% apps.forEach(app=> { %>
+        <tr class="hover:bg-slate-50/80 transition-colors group">
+          <td class="px-6 py-4">
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-slate-800 group-hover:text-primary-600 transition-colors">
+                <%= helpers.truncate(app.nama_aplikasi, 40) %>
+              </span>
+              <span class="text-[10px] text-slate-400 font-medium mt-0.5">
+                Dibuat oleh <%= app.leader_nama || 'Tim Leader' %>
+              </span>
+            </div>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <% 
+              const appStatusColors = {
+                pending: 'bg-slate-100 text-slate-600 border-slate-200',
+                testing: 'bg-amber-50 text-amber-600 border-amber-100',
+                in_progress: 'bg-primary-50 text-primary-600 border-primary-100',
+                selesai: 'bg-emerald-50 text-emerald-600 border-emerald-100'
+              };
+              const colorClass = appStatusColors[app.status] || 'bg-slate-50 text-slate-500 border-slate-100';
+            %>
+            <span class="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wide uppercase border <%= colorClass %>">
+              <%= app.status %>
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right">
+            <a href="/applications/<%= app.id %>" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-primary-600 hover:border-primary-200 hover:shadow-sm transition-all">
+              <i class="bi bi-chevron-right text-xs"></i>
+            </a>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (apps.length===0) { %>
+        <tr>
+          <td colspan="3" class="px-6 py-12 text-center">
+            <div class="flex flex-col items-center">
+              <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                <i class="bi bi-window text-slate-300 text-xl"></i>
+              </div>
+              <p class="text-sm font-bold text-slate-400">Belum ada data</p>
+            </div>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>

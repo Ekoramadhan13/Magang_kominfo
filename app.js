@@ -25,11 +25,19 @@ app.use(session({
 
 app.use(flash());
 
-app.use((req, res, next) => {
+const notifHelper = require('./src/utils/notifHelper');
+
+app.use(async (req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.success_msg = req.flash('success');
   res.locals.error_msg = req.flash('error');
   res.locals.helpers = helpers;
+  
+  if (req.session.user) {
+    res.locals.unreadNotifications = await notifHelper.getUnread(req.session.user.id);
+  } else {
+    res.locals.unreadNotifications = [];
+  }
   next();
 });
 
@@ -38,6 +46,7 @@ const appRoutes = require('./src/routes/appRoutes');
 const bugRoutes = require('./src/routes/bugRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
+const notifRoutes = require('./src/routes/notifRoutes');
 
 
 app.use('/', authRoutes);
@@ -45,6 +54,7 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/applications', appRoutes);
 app.use('/bugs', bugRoutes);
 app.use('/users', userRoutes);
+app.use('/notifications', notifRoutes);
 
 app.get('/', (req, res) => {
   if (req.session.user) return res.redirect('/dashboard');

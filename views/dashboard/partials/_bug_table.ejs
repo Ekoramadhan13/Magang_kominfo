@@ -1,0 +1,70 @@
+<div class="overflow-x-auto">
+  <table class="w-full text-left border-collapse">
+    <thead>
+      <tr class="bg-slate-50/50 border-b border-slate-100">
+        <th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400">Judul Bug</th>
+        <th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400">Aplikasi</th>
+        <th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400">Kategori</th>
+        <th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400">Status</th>
+        <th class="px-6 py-4"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-50">
+      <% bugs.forEach(bug=> { %>
+        <tr class="hover:bg-slate-50/80 transition-colors group">
+          <td class="px-6 py-4">
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-slate-800 group-hover:text-primary-600 transition-colors">
+                <%= helpers.truncate(bug.judul, 30) %>
+              </span>
+              <span class="text-[10px] text-slate-400 font-medium mt-0.5">
+                Oleh <%= bug.tester_nama %> • <%= helpers.formatDate(bug.created_at, 'DD MMM' ) %>
+              </span>
+            </div>
+          </td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+              <%= bug.nama_aplikasi %>
+            </span>
+          </td>
+          <td class="px-6 py-4 text-xs text-slate-500 font-medium">
+            <%= bug.use_case_judul || '-' %>
+          </td>
+          <td class="px-6 py-4">
+            <% 
+              const statusColors = {
+                open: 'bg-rose-50 text-rose-600 border-rose-100',
+                in_progress: 'bg-amber-50 text-amber-600 border-amber-100',
+                fixed: 'bg-blue-50 text-blue-600 border-blue-100',
+                verified: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                closed: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+                rejected: 'bg-slate-100 text-slate-600 border-slate-200'
+              };
+              const colorClass = statusColors[bug.status] || 'bg-slate-50 text-slate-500 border-slate-100';
+            %>
+            <span class="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wide uppercase border <%= colorClass %>">
+              <%= helpers.bugStatusLabel(bug.status) %>
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right">
+            <a href="/bugs/<%= bug.id %>" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-primary-600 hover:border-primary-200 hover:shadow-sm transition-all">
+              <i class="bi bi-chevron-right text-xs"></i>
+            </a>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (bugs.length===0) { %>
+        <tr>
+          <td colspan="5" class="px-6 py-12 text-center">
+            <div class="flex flex-col items-center">
+              <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                <i class="bi bi-inbox text-slate-300 text-xl"></i>
+              </div>
+              <p class="text-sm font-bold text-slate-400">Belum ada data</p>
+            </div>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>

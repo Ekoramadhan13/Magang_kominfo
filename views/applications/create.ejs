@@ -1,47 +1,267 @@
 <%- include('../partials/header') %>
 
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <div class="card shadow-sm">
-      <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Tambah Aplikasi Baru</h5>
-      </div>
-      <div class="card-body">
-        <form action="/applications" method="POST">
-          <div class="mb-3">
-            <label class="form-label fw-semibold">
-              Nama Aplikasi <span class="text-danger">*</span>
-            </label>
-            <input type="text" name="nama_aplikasi" class="form-control" required 
-                   placeholder="cth: Sistem Informasi Kepegawaian">
-          </div>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label fw-semibold">Versi</label>
-              <input type="text" name="versi" class="form-control" placeholder="cth: 1.0.0">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label fw-semibold">Tanggal Deadline</label>
-              <input type="date" name="tanggal_deadline" class="form-control">
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Deskripsi Aplikasi</label>
-            <textarea name="deskripsi" class="form-control" rows="4" 
-                      placeholder="Jelaskan fungsi dan tujuan aplikasi..."></textarea>
-          </div>
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">
-              <i class="bi bi-save"></i> Simpan
-            </button>
-            <a href="/applications" class="btn btn-secondary">
-              <i class="bi bi-arrow-left"></i> Batal
-            </a>
-          </div>
-        </form>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold"><i class="bi bi-plus-circle text-primary"></i> Tambah Aplikasi Baru</h4>
+  <a href="/applications" class="btn btn-sm btn-secondary">
+    <i class="bi bi-arrow-left"></i> Kembali
+  </a>
+</div>
+
+<form action="/applications" method="POST" id="formCreate">
+  <!-- ── INFO DASAR ─────────────────────────────────────────────────────── -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white fw-bold">
+      <i class="bi bi-info-circle"></i> Informasi Aplikasi
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-8">
+          <label class="form-label fw-semibold">Nama Aplikasi <span class="text-danger">*</span></label>
+          <input type="text" name="nama_aplikasi" class="form-control" required
+                 placeholder="cth: Sistem Informasi Kepegawaian">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold text-dark">Versi <span class="text-danger">*</span></label>
+          <select name="versi" class="form-select" required>
+            <option value="1.0.0" selected>1.0.0</option>
+            <option value="1.1.0">1.1.0</option>
+            <option value="1.2.0">1.2.0</option>
+            <option value="1.5.0">1.5.0</option>
+            <option value="2.0.0">2.0.0</option>
+            <option value="3.0.0">3.0.0</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">
+            Tanggal Deadline <span class="text-danger">*</span>
+          </label>
+          <input type="date" name="tanggal_deadline" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">URL Aplikasi</label>
+          <input type="url" name="url" class="form-control" placeholder="https://...">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">
+            Deskripsi Aplikasi <span class="text-danger">*</span>
+          </label>
+          <textarea name="deskripsi" class="form-control" rows="3" required
+                    placeholder="Jelaskan fungsi dan tujuan aplikasi..."></textarea>
+        </div>
       </div>
     </div>
   </div>
-</div>
+
+  <!-- ── USE CASES ──────────────────────────────────────────────────────── -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-list-check"></i> Use Cases</span>
+      <button type="button" class="btn btn-sm btn-dark" onclick="tambahUseCase()">
+        <i class="bi bi-plus"></i> Tambah Use Case
+      </button>
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Tambahkan Use Case untuk aplikasi ini. Judul, Deskripsi, dan Role wajib diisi.
+      </p>
+      <div id="useCaseContainer">
+        <!-- Use case pertama otomatis -->
+        <div class="use-case-item border rounded p-3 mb-3 bg-light" id="uc-0">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-warning"><i class="bi bi-list-task"></i> Use Case #1</h6>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Judul <span class="text-danger">*</span></label>
+              <input type="text" name="use_cases[0][judul]" class="form-control form-control-sm"
+                     placeholder="cth: Login User" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Role <span class="text-danger">*</span></label>
+              <input type="text" name="use_cases[0][role]" class="form-control form-control-sm"
+                     placeholder="cth: Admin, User, Tester" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Deskripsi <span class="text-danger">*</span></label>
+              <textarea name="use_cases[0][deskripsi]" class="form-control form-control-sm" rows="2"
+                        placeholder="Jelaskan use case ini..." required></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small">Langkah-langkah</label>
+              <textarea name="use_cases[0][langkah_langkah]" class="form-control form-control-sm" rows="2"
+                        placeholder="1. Buka halaman...&#10;2. Klik..."></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small">Expected Result</label>
+              <textarea name="use_cases[0][expected_result]" class="form-control form-control-sm" rows="2"
+                        placeholder="Seharusnya..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PENUGASAN BUSINESS ANALYST ─────────────────────────────────────── -->
+  <div class="card shadow-sm mb-4 border-0" style="border-radius: 12px;">
+    <div class="card-header bg-dark text-white fw-bold py-3">
+      <i class="bi bi-person-badge-fill me-1"></i> Penugasan Business Analyst (BA) <span class="badge bg-danger ms-1">Wajib</span>
+    </div>
+    <div class="card-body">
+      <div class="dropdown custom-dropdown w-100" id="dropdown-ba">
+        <button class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center py-2 shadow-sm" type="button" onclick="toggleDropdown('ba-list')">
+          <span id="ba-selected-text">Pilih Business Analyst...</span>
+          <i class="bi bi-chevron-down"></i>
+        </button>
+        <div id="ba-list" class="dropdown-menu-custom shadow border p-3" style="display:none; position: absolute; z-index: 1000; width: 100%; background: white; max-height: 250px; overflow-y: auto; border-radius: 8px; margin-top: 5px;">
+          <% allBA.forEach(ba => { %>
+            <div class="form-check mb-2">
+              <input class="form-check-input ba-checkbox" type="checkbox" name="ba_ids[]" value="<%= ba.id %>" id="ba_<%= ba.id %>" onchange="updateSelectedCount('ba')">
+              <label class="form-check-label fw-semibold" for="ba_<%= ba.id %>">
+                <%= ba.nama %>
+              </label>
+            </div>
+          <% }) %>
+          <% if (allBA.length === 0) { %><p class="text-muted small mb-0">Tidak ada BA tersedia.</p><% } %>
+        </div>
+      </div>
+      <div class="form-text mt-2 small text-muted"><i class="bi bi-info-circle"></i> Pilih satu atau lebih Business Analyst yang terlibat.</div>
+    </div>
+  </div>
+
+  <!-- ── PENUGASAN PROGRAMMER / DSI ─────────────────────────────────────── -->
+  <div class="card shadow-sm mb-4 border-0" style="border-radius: 12px;">
+    <div class="card-header bg-info text-white fw-bold py-3">
+      <i class="bi bi-code-slash me-1"></i> Penugasan Programmer / DSI <span class="badge bg-danger ms-1">Wajib min. 1</span>
+    </div>
+    <div class="card-body">
+      <div class="dropdown custom-dropdown w-100" id="dropdown-dev">
+        <button class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center py-2 shadow-sm" type="button" onclick="toggleDropdown('dev-list')">
+          <span id="dev-selected-text">Pilih Programmer / DSI...</span>
+          <i class="bi bi-chevron-down"></i>
+        </button>
+        <div id="dev-list" class="dropdown-menu-custom shadow border p-3" style="display:none; position: absolute; z-index: 1000; width: 100%; background: white; max-height: 250px; overflow-y: auto; border-radius: 8px; margin-top: 5px;">
+          <% allDev.forEach(dev => { %>
+            <div class="form-check mb-2">
+              <input class="form-check-input dev-checkbox" type="checkbox" name="dev_ids[]" value="<%= dev.id %>" id="dev_<%= dev.id %>" onchange="updateSelectedCount('dev')">
+              <label class="form-check-label fw-semibold" for="dev_<%= dev.id %>">
+                <%= dev.nama %> <span class="badge bg-light text-info border ms-1" style="font-size: 0.6rem;"><%= dev.role.toUpperCase() %></span>
+              </label>
+            </div>
+          <% }) %>
+          <% if (allDev.length === 0) { %><p class="text-muted small mb-0">Tidak ada Programmer/DSI tersedia.</p><% } %>
+        </div>
+      </div>
+      <div class="form-text mt-2 small text-muted"><i class="bi bi-info-circle"></i> Pilih personil yang akan bertanggung jawab melakukan perbaikan bug.</div>
+    </div>
+  </div>
+
+  <!-- ── TOMBOL SIMPAN ──────────────────────────────────────────────────── -->
+  <div class="d-flex gap-3 mb-5 mt-4">
+    <button type="submit" class="btn btn-primary btn-lg px-5 shadow" style="border-radius: 10px;">
+      <i class="bi bi-cloud-arrow-up-fill me-2"></i> Simpan Aplikasi
+    </button>
+    <a href="/applications" class="btn btn-light btn-lg px-4 border" style="border-radius: 10px;">
+      Batal
+    </a>
+  </div>
+</form>
+
+<script>
+  let ucCount = 1;
+
+  function tambahUseCase() {
+    const i = ucCount++;
+    const container = document.getElementById('useCaseContainer');
+    const div = document.createElement('div');
+    div.className = 'use-case-item border rounded p-3 mb-3 bg-light';
+    div.id = `uc-${i}`;
+    div.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold mb-0 text-warning"><i class="bi bi-list-task"></i> Use Case #${i + 1}</h6>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusUseCase('uc-${i}')">
+          <i class="bi bi-trash"></i> Hapus
+        </button>
+      </div>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Judul <span class="text-danger">*</span></label>
+          <input type="text" name="use_cases[${i}][judul]" class="form-control form-control-sm"
+                 placeholder="cth: Login User">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Role <span class="text-danger">*</span></label>
+          <input type="text" name="use_cases[${i}][role]" class="form-control form-control-sm"
+                 placeholder="cth: Admin, User, Tester">
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Deskripsi <span class="text-danger">*</span></label>
+          <textarea name="use_cases[${i}][deskripsi]" class="form-control form-control-sm" rows="2"
+                    placeholder="Jelaskan use case ini..."></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small">Langkah-langkah</label>
+          <textarea name="use_cases[${i}][langkah_langkah]" class="form-control form-control-sm" rows="2"
+                    placeholder="1. Buka halaman...&#10;2. Klik..."></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small">Expected Result</label>
+          <textarea name="use_cases[${i}][expected_result]" class="form-control form-control-sm" rows="2"
+                    placeholder="Seharusnya..."></textarea>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+  }
+
+  function hapusUseCase(id) {
+    const el = document.getElementById(`uc-${id}`);
+    if (el) el.remove();
+  }
+
+  // --- Custom Dropdown Logic ---
+  function toggleDropdown(id) {
+    const el = document.getElementById(id);
+    const isVisible = el.style.display === 'block';
+    document.querySelectorAll('.dropdown-menu-custom').forEach(menu => menu.style.display = 'none');
+    el.style.display = isVisible ? 'none' : 'block';
+  }
+
+  function updateSelectedCount(type) {
+    const checkboxes = document.querySelectorAll(`.${type}-checkbox:checked`);
+    const textEl = document.getElementById(`${type}-selected-text`);
+    if (checkboxes.length > 0) {
+      textEl.innerText = `${checkboxes.length} terpilih`;
+      textEl.classList.add('fw-bold', 'text-primary');
+    } else {
+      textEl.innerText = type === 'ba' ? 'Pilih Business Analyst...' : 'Pilih Programmer / DSI...';
+      textEl.classList.remove('fw-bold', 'text-primary');
+    }
+  }
+
+  window.addEventListener('click', function(e) {
+    if (!e.target.closest('.custom-dropdown')) {
+      document.querySelectorAll('.dropdown-menu-custom').forEach(menu => menu.style.display = 'none');
+    }
+  });
+
+  // Validasi minimal 1 dev & 1 ba dipilih sebelum submit
+  document.getElementById('formCreate').addEventListener('submit', function(e) {
+    const devChecks = document.querySelectorAll('input[name="dev_ids[]"]:checked');
+    const baChecks = document.querySelectorAll('input[name="ba_ids[]"]:checked');
+    
+    if (devChecks.length === 0) {
+      e.preventDefault();
+      alert('Minimal harus ada 1 Programmer/DSI yang dipilih!');
+      return;
+    }
+    
+    if (baChecks.length === 0) {
+      e.preventDefault();
+      alert('Minimal harus ada 1 Business Analyst yang dipilih!');
+      return;
+    }
+  });
+</script>
 
 <%- include('../partials/footer') %>

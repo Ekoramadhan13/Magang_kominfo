@@ -14,23 +14,54 @@ const helpers = {
     if (!date) return '-';
     return moment(date).fromNow();
   },
-  severityColor: (s) => ({ critical:'danger', major:'warning', minor:'info', trivial:'secondary' })[s] || 'secondary',
-  statusColor: (s) => ({ open:'info', in_progress:'info', fixed:'info', verified:'success', closed:'warning', rejected:'danger' })[s] || 'secondary',
+  severityColor: (s) => ({ 
+    'Berhasil': 'success', 
+    'Gagal': 'danger', 
+    'Berhasil dengan catatan': 'warning',
+    'verified': 'success',
+    'rejected': 'danger',
+    'closed': 'warning',
+    'critical':'danger', 'major':'warning', 'minor':'info', 'trivial':'secondary' 
+  })[s] || 'secondary',
+  statusColor: (s) => ({ 
+    open: 'info', 
+    in_progress: 'primary', 
+    fixed: 'primary', 
+    verified: 'success', 
+    closed: 'warning', 
+    rejected: 'danger' 
+  })[s] || 'secondary',
+  roleColor: (r) => ({ 
+    admin: 'dark', 
+    tim_leader: 'primary', 
+    ketua_tester: 'success', 
+    tester: 'success', 
+    programmer: 'info', 
+    dsi: 'info',
+    business_analyst: 'primary',
+    ba: 'primary'
+  })[r] || 'secondary',
   bugStatusLabel: (s) => {
-    if (!s) return 'Sedang Diproses';
     return ({ 
-      open: 'Sedang Diproses', 
+      open: 'Open', 
       in_progress: 'Sedang Diproses', 
-      fixed: 'Sedang Diproses', 
+      fixed: 'Fixed', 
+      verified: 'Verified', 
+      closed: 'Closed', 
+      rejected: 'Rejected' 
+    })[s] || 'Open';
+  },
+  bugOutcomeLabel: (s) => {
+    return ({ 
       verified: 'Berhasil', 
       closed: 'Berhasil dengan catatan', 
       rejected: 'Gagal' 
-    })[s] || 'Sedang Diproses';
+    })[s] || '-';
   },
   bugStatusColor: (s) => ({ 
     open: 'info', 
-    in_progress: 'info', 
-    fixed: 'info', 
+    in_progress: 'primary', 
+    fixed: 'primary', 
     verified: 'success', 
     closed: 'warning', 
     rejected: 'danger' 

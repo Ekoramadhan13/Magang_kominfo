@@ -1,299 +1,337 @@
 <%- include('../partials/header') %>
 
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="fw-bold"><i class="bi bi-bug text-danger"></i> Detail Bug #<%= bug.id %>
-    </h4>
-    <a href="/bugs" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+    <h4 class="fw-bold"><i class="bi bi-bug text-danger"></i> Detail Bug #<%= bug.id %></h4>
+    <div class="d-flex gap-2">
+      <% if ((helpers.hasRole(user, 'ketua_tester') || (user.role === 'tester' && bug.tester_id === user.id) || helpers.hasRole(user, 'admin')) && !bug.testing_finished) { %>
+      <form action="/bugs/<%= bug.id %>?_method=DELETE" method="POST"
+            onsubmit="return confirm('Yakin hapus bug ini?')">
+        <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Hapus Bug</button>
+      </form>
+      <% } %>
+      <a href="/bugs" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+    </div>
   </div>
+
+  <!-- Alert: Testing Selesai -->
+  <% if (bug.testing_finished) { %>
+  <div class="alert alert-warning border-start border-4 border-warning">
+    <i class="bi bi-flag-fill"></i>
+    <strong>Testing sudah dinyatakan Selesai.</strong> Programmer/DSI tidak dapat mengerjakan bug ini lagi.
+  </div>
+  <% } %>
+
+  <!-- Alert: Bug Ditolak (dari riwayat) -->
+  <% if (bug.status === 'in_progress' && history.length > 0) {
+     const lastH = history[history.length - 1];
+     if (lastH.status_baru === 'in_progress' && lastH.status_lama === 'fixed') { %>
+  <div class="alert alert-danger border-start border-4 border-danger">
+    <h6 class="fw-bold"><i class="bi bi-x-circle-fill"></i> Bug Ditolak (Perlu Diperbaiki Ulang)</h6>
+    <p class="mb-0"><%= lastH.keterangan || 'Tidak ada catatan.' %></p>
+  </div>
+  <% }} %>
+
+  <!-- Alert: Bug Fixed → Perlu Diverifikasi -->
+  <% if (bug.status === 'fixed' && helpers.hasRole(user, 'tester', 'ketua_tester')) { %>
+  <div class="alert alert-success border-start border-4 border-success">
+    <i class="bi bi-patch-check-fill"></i>
+    <strong>Bug sudah diperbaiki!</strong> Silakan verifikasi apakah perbaikan sudah benar.
+  </div>
+  <% } %>
 
   <div class="row g-3">
+    <!-- ── PANEL KIRI: Info Bug ── -->
     <div class="col-md-8">
-      <% if (bug.status==='in_progress' && history.length> 0) {
-        const lastHistory = history[history.length - 1];
-        if (lastHistory.status_baru === 'in_progress' && lastHistory.status_lama === 'fixed') { %>
-        <div class="alert alert-danger border-start border-4 border-danger shadow-sm">
-          <h6 class="fw-bold"><i class="bi bi-x-circle-fill"></i> Alasan Bug Ditolak (Oleh Tester)</h6>
-          <p class="mb-0">
-            <%= lastHistory.keterangan || 'Tidak ada catatan tambahan.' %>
-          </p>
+      <div class="card shadow-sm">
+        <div class="card-header bg-white fw-bold d-flex justify-content-between">
+          <span><%= bug.judul %></span>
+          <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %> fs-6">
+            <%= helpers.bugStatusLabel(bug.status) %>
+          </span>
         </div>
-        <% } } %>
-
-          <div class="card shadow-sm mb-3">
-            <div class="card-header bg-white fw-bold d-flex justify-content-between">
-              <span>
-                <%= bug.judul %>
-              </span>
-              <span class="badge bg-<%= helpers.statusColor(bug.status) %> fs-6">
-                <%= helpers.capitalize(bug.status) %>
-              </span>
+        <div class="card-body">
+          <div class="row mb-3 g-2">
+            <div class="col-md-3"><strong>Aplikasi:</strong></div>
+            <div class="col-md-9">
+              <a href="/applications/<%= bug.application_id %>" class="text-decoration-none">
+                <%= bug.nama_aplikasi %>
+              </a>
             </div>
-            <div class="card-body">
-              <div class="row mb-3">
-                <div class="col-md-3"><strong>Aplikasi:</strong></div>
-                <div class="col-md-9">
-                  <%= bug.nama_aplikasi %>
-                </div>
-                <% if (bug.use_case_judul) { %>
-                  <div class="col-md-3"><strong>Use Case:</strong></div>
-                  <div class="col-md-9">
-                    <%= bug.use_case_judul %>
-                  </div>
-                  <% } %>
-                    <div class="col-md-3"><strong>Severity:</strong></div>
-                    <div class="col-md-9"><span class="badge bg-<%= helpers.severityColor(bug.severity) %>">
-                        <%= bug.severity %>
-                      </span></div>
-                    <div class="col-md-3"><strong>Priority:</strong></div>
-                    <div class="col-md-9"><span class="badge bg-<%= helpers.priorityColor(bug.priority) %>">
-                        <%= bug.priority %>
-                      </span></div>
-                    <div class="col-md-3"><strong>Tester:</strong></div>
-                    <div class="col-md-9">
-                      <%= bug.tester_nama %>
-                    </div>
-                    <div class="col-md-3"><strong><%= (bug.assigned_role && bug.assigned_role.includes('DSI')) ? 'DSI:' : 'Programmer:' %></strong></div>
-                    <div class="col-md-9">
-                      <%= bug.programmer_nama || '-' %>
-                      <% if (bug.assigned_role) { %>
-                        (<%= bug.assigned_role.includes('DSI') ? 'DSI' : 'Programmer' %>)
-                      <% } %>
-                    </div>
-                    <div class="col-md-3"><strong>Dilaporkan:</strong></div>
-                    <div class="col-md-9"><small>
-                        <%= helpers.formatDateTime(bug.created_at) %>
-                      </small></div>
-                    <% if (bug.tanggal_fixed) { %>
-                      <div class="col-md-3"><strong>Tgl Fixed:</strong></div>
-                      <div class="col-md-9"><small>
-                          <%= helpers.formatDate(bug.tanggal_fixed) %>
-                        </small></div>
-                      <% } %>
-              </div>
 
-              <hr>
-              <h6 class="fw-bold">Deskripsi</h6>
-              <p>
-                <%= bug.deskripsi %>
-              </p>
-
-              <% if (bug.langkah_reproduksi) { %>
-                <h6 class="fw-bold">Langkah Reproduksi</h6>
-                <pre class="bg-light p-2 rounded small"><%= bug.langkah_reproduksi %></pre>
-                <% } %>
-
-                  <div class="row">
-                    <% if (bug.expected_result) { %>
-                      <div class="col-md-6">
-                        <h6 class="fw-bold text-success">Expected Result</h6>
-                        <p class="small bg-success bg-opacity-10 p-2 rounded">
-                          <%= bug.expected_result %>
-                        </p>
-                      </div>
-                      <% } %>
-                        <% if (bug.actual_result) { %>
-                          <div class="col-md-6">
-                            <h6 class="fw-bold text-danger">Actual Result</h6>
-                            <p class="small bg-danger bg-opacity-10 p-2 rounded">
-                              <%= bug.actual_result %>
-                            </p>
-                          </div>
-                          <% } %>
-                  </div>
-
-                  <% if (bug.screenshot) { %>
-                    <% const isVideo = ['.mp4', '.webm', '.ogg'].some(ext => bug.screenshot.toLowerCase().endsWith(ext)); %>
-                    <h6 class="fw-bold"><%= isVideo ? 'Video Evidence' : 'Screenshot' %></h6>
-                    <div class="bg-light rounded p-2 text-center">
-                      <% if (isVideo) { %>
-                        <video controls class="img-fluid rounded" style="max-height:400px; width: 100%;">
-                          <source src="/uploads/<%= bug.screenshot %>" type="video/<%= bug.screenshot.split('.').pop() %>">
-                          Browser Anda tidak mendukung pemutar video.
-                        </video>
-                      <% } else { %>
-                        <a href="/uploads/<%= bug.screenshot %>" target="_blank">
-                          <img src="/uploads/<%= bug.screenshot %>" class="img-fluid rounded" style="max-height:400px">
-                        </a>
-                      <% } %>
-                    </div>
-                  <% } %>
-
-                      <% if (bug.komentar_programmer) { %>
-                        <hr>
-                        <h6 class="fw-bold">Komentar Programmer/DSI</h6>
-                        <div class="alert alert-info">
-                          <%= bug.komentar_programmer %>
-                        </div>
-                        <% } %>
-            </div>
-          </div>
-    </div>
-
-    <div class="col-md-4">
-
-      <% if ((helpers.hasRole(user, 'ketua_tester') || (user.role === 'tester' && isAssignedTester)) && bug.status === 'open') { %>
-        <div class="card shadow-sm mb-3">
-          <div class="card-header bg-warning text-dark fw-bold"><i class="bi bi-person-check"></i> Tugaskan Bug</div>
-          <div class="card-body">
-            <form action="/bugs/<%= bug.id %>/assign" method="POST">
-              <div class="mb-2">
-                <label class="form-label small">Tugaskan ke</label>
-                <select name="assigned_to" class="form-select form-select-sm" required>
-                  <option value="">-- Pilih --</option>
-                  <% programmers.forEach(p=> { %>
-                    <option value="<%= p.id %>" data-role="<%= p.role %>">
-                      <%= p.nama %> (<%= p.role %>)
-                    </option>
-                    <% }) %>
-                </select>
-              </div>
-              <div class="mb-2">
-                <label class="form-label small">Role</label>
-                <select name="assigned_role" id="roleSelect" class="form-select form-select-sm" required>
-                  <option value="">-- Pilih Role --</option>
-                </select>
-              </div>
-              <button type="submit" class="btn btn-warning btn-sm w-100">Tugaskan</button>
-            </form>
-          </div>
-        </div>
-        <% } %>
-
-          <% if (helpers.hasRole(user, 'programmer' , 'dsi' ) && (bug.status==='in_progress' || bug.status==='open' ||
-            bug.status==='rejected' )) { %>
-            <div class="card shadow-sm mb-3">
-              <div class="card-header bg-primary text-white fw-bold"><i class="bi bi-arrow-repeat"></i> Update Status
-              </div>
-              <div class="card-body">
-                <form action="/bugs/<%= bug.id %>/status?_method=PUT" method="POST">
-                  <div class="mb-2">
-                    <label class="form-label small">Status Baru</label>
-                    <select name="status" class="form-select form-select-sm" required>
-                      <option value="in_progress">In Progress</option>
-                      <option value="fixed">Fixed - Sudah Diperbaiki</option>
-                    </select>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small">Komentar Perbaikan</label>
-                    <textarea name="komentar_programmer" class="form-control form-control-sm" rows="3"
-                      placeholder="Jelaskan apa yang diperbaiki..."></textarea>
-                  </div>
-                  <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-check"></i> Update</button>
-                </form>
-              </div>
-            </div>
+            <% if (bug.use_case_judul) { %>
+            <div class="col-md-3"><strong>Use Case:</strong></div>
+            <div class="col-md-9"><%= bug.use_case_judul %></div>
             <% } %>
 
-              <% if (helpers.hasRole(user, 'tester' , 'ketua_tester' ) && bug.status==='fixed' ) { %>
-                <div class="card shadow-sm mb-3">
-                  <div class="card-header bg-success text-white fw-bold"><i class="bi bi-patch-check"></i> Verifikasi
-                    Bug</div>
-                  <div class="card-body">
-                    <p class="small">Bug sudah diperbaiki. Silakan verifikasi apakah perbaikan sudah benar.</p>
-                    <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST" class="mb-2">
-                      <input type="hidden" name="action" value="verified">
-                      <textarea name="catatan" class="form-control form-control-sm mb-2"
-                        placeholder="Catatan (opsional)" rows="2"></textarea>
-                      <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-circle"></i> Verified -
-                        Sudah Benar</button>
-                    </form>
-                    <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST" class="mb-2">
-                      <input type="hidden" name="action" value="closed">
-                      <textarea name="catatan" class="form-control form-control-sm mb-2"
-                        placeholder="Catatan (wajib)" rows="2" required></textarea>
-                      <button type="submit" class="btn btn-warning w-100 text-dark"><i class="bi bi-info-circle"></i> Berhasil dengan Catatan</button>
-                    </form>
-                    <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST">
-                      <input type="hidden" name="action" value="rejected">
-                      <textarea name="catatan" class="form-control form-control-sm mb-2"
-                        placeholder="Alasan penolakan..." rows="2" required></textarea>
-                      <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-x-circle"></i> Reject -
-                        Gagal</button>
-                    </form>
-                  </div>
-                </div>
-                <% } %>
-              
-              <% if ((helpers.hasRole(user, 'ketua_tester') || (user.role === 'tester' && isAssignedTester)) && bug.status === 'in_progress') { %>
-                <div class="card shadow-sm mb-3 border-danger">
-                  <div class="card-header bg-danger text-white fw-bold">
-                    <i class="bi bi-x-circle"></i> Batalkan Penugasan
-                  </div>
-                  <div class="card-body">
-                    <p class="small text-muted mb-2">Batalkan jika programmer sedang sibuk agar bug bisa dikerjakan yang lain.</p>
-                    <form action="/bugs/<%= bug.id %>/unassign" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan penugasan ini?')">
-                      <button type="submit" class="btn btn-danger btn-sm w-100">Batalkan Sekarang</button>
-                    </form>
-                  </div>
-                </div>
+            <div class="col-md-3"><strong>Kategori:</strong></div>
+            <div class="col-md-9">
+              <% if (['verified','rejected','closed'].includes(bug.status)) { %>
+                <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>">
+                  <%= helpers.bugOutcomeLabel(bug.status) %>
+                </span>
+              <% } else { %>
+                <span class="text-muted small">Belum ada hasil (masih diproses)</span>
               <% } %>
+            </div>
 
-                  <div class="card shadow-sm">
-                    <div class="card-header bg-secondary text-white fw-bold"><i class="bi bi-clock-history"></i> Riwayat
-                    </div>
-                    <div class="card-body p-0">
-                      <% if (history.length> 0) { %>
-                        <ul class="list-group list-group-flush">
-                          <% history.forEach(h=> { %>
-                            <li class="list-group-item py-2">
-                              <div class="d-flex justify-content-between">
-                                <small class="fw-semibold">
-                                  <%= h.user_nama %>
-                                </small>
-                                <small class="text-muted">
-                                  <%= helpers.formatDateTime(h.created_at) %>
-                                </small>
-                              </div>
-                              <div class="small">
-                                <span class="badge bg-secondary">
-                                  <%= h.status_lama %>
-                                </span>
-                                <i class="bi bi-arrow-right"></i>
-                                <span class="badge bg-<%= helpers.statusColor(h.status_baru) %>">
-                                  <%= h.status_baru %>
-                                </span>
-                              </div>
-                              <% if (h.keterangan) { %>
-                                <div class="text-muted mt-1"
-                                  style="font-size: 0.85rem; background: #f8f9fa; padding: 5px; border-radius: 4px;">
-                                  <i class="bi bi-chat-left-text me-1"></i>
-                                  <%= h.keterangan %>
-                                </div>
-                                <% } %>
-                            </li>
-                            <% }) %>
-                        </ul>
-                        <% } else { %>
-                          <p class="text-muted small p-3 mb-0">Belum ada riwayat.</p>
-                          <% } %>
-                    </div>
-                  </div>
+            <div class="col-md-3"><strong>Status Akhir:</strong></div>
+            <div class="col-md-9">
+              <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>">
+                <%= helpers.bugStatusLabel(bug.status) %>
+              </span>
+            </div>
+
+            <div class="col-md-3"><strong>Tester:</strong></div>
+            <div class="col-md-9 text-dark fw-semibold"><%= bug.tester_nama %></div>
+
+            <div class="col-md-3"><strong>Penanggung Jawab:</strong></div>
+            <div class="col-md-9">
+              <% if (contributors && contributors.length > 0) { 
+                  const uniqueRoles = [...new Set(contributors.map(c => c.role.toUpperCase()))];
+              %>
+                <div class="d-flex gap-1 flex-wrap">
+                  <% uniqueRoles.forEach(role => { %>
+                    <span class="badge bg-info text-white px-3 py-2" style="font-size: 0.75rem; font-weight: 700; border-radius: 20px;">
+                      <%= role %>
+                    </span>
+                  <% }) %>
+                </div>
+              <% } else { %>
+                <span class="text-muted small italic">Belum ada penanggung jawab</span>
+              <% } %>
+            </div>
+
+            <div class="col-md-3"><strong>Tim Kontributor:</strong></div>
+            <div class="col-md-9">
+              <% if (contributors && contributors.length > 0) { %>
+                <div class="d-flex flex-wrap gap-2">
+                  <% contributors.forEach(c => { %>
+                    <span class="badge bg-white text-dark border px-2 py-1" style="font-size: 0.85rem; font-weight: 500; border-radius: 6px;">
+                      <i class="bi bi-person-fill text-primary me-1"></i><%= c.nama %> (<%= c.role.toUpperCase() %>)
+                    </span>
+                  <% }) %>
+                </div>
+              <% } else { %>
+                <span class="text-muted small">-</span>
+              <% } %>
+            </div>
+
+            <div class="col-md-3"><strong>Dilaporkan:</strong></div>
+            <div class="col-md-9"><small class="text-muted"><%= helpers.formatDateTime(bug.created_at) %></small></div>
+
+            <% if (bug.tanggal_fixed) { %>
+            <div class="col-md-3"><strong>Tgl Fixed:</strong></div>
+            <div class="col-md-9 text-dark fw-semibold"><small><%= helpers.formatDate(bug.tanggal_fixed) %></small></div>
+            <% } %>
+          </div>
+
+          <hr>
+          <h6 class="fw-bold">Deskripsi</h6>
+          <p><%= bug.deskripsi %></p>
+
+          <% if (bug.langkah_reproduksi) { %>
+          <h6 class="fw-bold">Langkah Reproduksi</h6>
+          <pre class="bg-light p-2 rounded small"><%= bug.langkah_reproduksi %></pre>
+          <% } %>
+
+          <div class="row">
+            <% if (bug.expected_result) { %>
+            <div class="col-md-6">
+              <h6 class="fw-bold text-success">Expected Result</h6>
+              <p class="small bg-success bg-opacity-10 p-2 rounded"><%= bug.expected_result %></p>
+            </div>
+            <% } %>
+            <% if (bug.actual_result) { %>
+            <div class="col-md-6">
+              <h6 class="fw-bold text-danger">Actual Result</h6>
+              <p class="small bg-danger bg-opacity-10 p-2 rounded"><%= bug.actual_result %></p>
+            </div>
+            <% } %>
+          </div>
+
+          <% if (bug.screenshot) { %>
+          <% const isVideo = ['.mp4', '.webm', '.ogg'].some(ext => bug.screenshot.toLowerCase().endsWith(ext)); %>
+          <h6 class="fw-bold"><%= isVideo ? 'Video Evidence' : 'Screenshot' %></h6>
+          <div class="bg-light rounded p-2 text-center">
+            <% if (isVideo) { %>
+            <video controls class="img-fluid rounded" style="max-height:400px;width:100%">
+              <source src="/uploads/<%= bug.screenshot %>" type="video/<%= bug.screenshot.split('.').pop() %>">
+            </video>
+            <% } else { %>
+            <a href="/uploads/<%= bug.screenshot %>" target="_blank">
+              <img src="/uploads/<%= bug.screenshot %>" class="img-fluid rounded" style="max-height:400px">
+            </a>
+            <% } %>
+          </div>
+          <% } %>
+
+          <% if (bug.komentar_programmer) { %>
+          <hr>
+          <h6 class="fw-bold">Komentar Programmer/DSI</h6>
+          <div class="alert alert-info"><%= bug.komentar_programmer %></div>
+          <% } %>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <script>
-    document.querySelector('select[name="assigned_to"]').addEventListener('change', function () {
-      const selectedOption = this.options[this.selectedIndex];
-      const role = selectedOption.getAttribute('data-role');
-      const roleSelect = document.getElementById('roleSelect');
+    <!-- ── PANEL KANAN: Aksi ── -->
+    <div class="col-md-4">
 
-      roleSelect.innerHTML = '';
+      <!-- [1] Tombol KERJAKAN (Programmer/DSI → status Open/In Progress/Rejected/Fixed → Tambah Kontributor) -->
+      <% 
+        const isAlreadyContributor = contributors && contributors.some(c => c.nama === user.nama);
+      %>
+      <% if (helpers.hasRole(user, 'programmer', 'dsi', 'admin')
+             && ['open', 'in_progress', 'rejected', 'fixed'].includes(bug.status) 
+             && !bug.testing_finished 
+             && !isAlreadyContributor) { %>
+      <div class="card shadow-sm mb-3 border-primary">
+        <div class="card-header bg-primary text-white fw-bold">
+          <i class="bi bi-person-plus"></i> Kolaborasi Bug
+        </div>
+        <div class="card-body text-center">
+          <p class="small text-muted mb-3">
+            <% if(bug.status === 'open') { %>
+              Ambil tanggung jawab bug ini atau bergabung sebagai tim kontributor.
+            <% } else if(bug.status === 'rejected') { %>
+              Bug ini <strong>Ditolak</strong>. Silakan bergabung untuk memperbaikinya kembali.
+            <% } else if(bug.status === 'fixed') { %>
+              Bug sudah <strong>Fixed</strong>. Anda masih bisa bergabung sebagai kontributor.
+            <% } else { %>
+              Bergabunglah dengan tim untuk membantu perbaikan bug ini.
+            <% } %>
+          </p>
+          <form action="/bugs/<%= bug.id %>/kerjakan" method="POST">
+            <button type="submit" class="btn btn-primary w-100 fw-bold">
+              <i class="bi bi-play-fill"></i> 
+              <%= (bug.status === 'open' || bug.status === 'rejected') ? 'Kerjakan Sekarang' : 'Ikut Berkontribusi' %>
+            </button>
+          </form>
+        </div>
+      </div>
+      <% } %>
 
-      if (!role) {
-        roleSelect.innerHTML = '<option value="">-- Pilih Role --</option>';
-        return;
-      }
+      <!-- [2] Update Status (Programmer/DSI) — hanya jika testing belum selesai -->
+      <% if (helpers.hasRole(user, 'programmer', 'dsi', 'admin')
+             && ['in_progress', 'open', 'rejected', 'fixed'].includes(bug.status)
+             && !bug.testing_finished) { %>
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-primary text-white fw-bold">
+          <i class="bi bi-check-all"></i> Selesaikan Perbaikan
+        </div>
+        <div class="card-body">
+          <form action="/bugs/<%= bug.id %>/status?_method=PUT" method="POST">
+            <input type="hidden" name="status" value="fixed">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Komentar Perbaikan</label>
+              <textarea name="komentar_programmer" class="form-control form-control-sm" rows="3"
+                        placeholder="Jelaskan apa yang sudah diperbaiki..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold py-2">
+              <i class="bi bi-check-circle-fill me-1"></i> Tandai Sudah Diperbaiki (Fixed)
+            </button>
+          </form>
+        </div>
+      </div>
+      <% } %>
 
-      if (role === 'programmer') {
-        roleSelect.innerHTML = `
-          <option value="Programmer">Programmer</option>
-        `;
-      } else if (role === 'dsi') {
-        roleSelect.innerHTML = `
-          <option value="DSI">DSI</option>
-        `;
-      }
-    });
-  </script>
+      <!-- [3] Verifikasi (Tester/Ketua Tester) setelah Programmer Fixed -->
+      <% if (helpers.hasRole(user, 'tester', 'ketua_tester') && bug.status === 'fixed') { %>
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-success text-white fw-bold">
+          <i class="bi bi-patch-check"></i> Verifikasi Hasil Perbaikan
+        </div>
+        <div class="card-body">
+          <p class="small text-muted mb-3">
+            Pilih hasil verifikasi setelah memeriksa perbaikan dari Programmer/DSI.
+          </p>
+          <!-- Berhasil -->
+          <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST" class="mb-2">
+            <input type="hidden" name="action" value="verified">
+            <textarea name="catatan" class="form-control form-control-sm mb-2" rows="2"
+                      placeholder="Catatan (opsional)"></textarea>
+            <button type="submit" class="btn btn-success w-100">
+              <i class="bi bi-check-circle"></i> Berhasil
+            </button>
+          </form>
+          <!-- Berhasil Dengan Catatan -->
+          <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST" class="mb-2">
+            <input type="hidden" name="action" value="closed">
+            <textarea name="catatan" class="form-control form-control-sm mb-2" rows="2"
+                      placeholder="Catatan wajib diisi..." required></textarea>
+            <button type="submit" class="btn btn-warning w-100 text-dark">
+              <i class="bi bi-info-circle"></i> Berhasil Dengan Catatan
+            </button>
+          </form>
+          <!-- Gagal -->
+          <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST">
+            <input type="hidden" name="action" value="rejected">
+            <textarea name="catatan" class="form-control form-control-sm mb-2" rows="2"
+                      placeholder="Alasan penolakan..." required></textarea>
+            <button type="submit" class="btn btn-outline-danger w-100">
+              <i class="bi bi-x-circle"></i> Gagal (Perlu Diperbaiki Ulang)
+            </button>
+          </form>
+        </div>
+      </div>
+      <% } %>
 
-  <%- include('../partials/footer') %>
+      <!-- [4] Selesai Testing -->
+      <% if ((helpers.hasRole(user, 'ketua_tester') || (user.role === 'tester' && isAssignedTester))
+             && !bug.testing_finished) { %>
+      <div class="card shadow-sm mb-3 border-danger">
+        <div class="card-header bg-danger text-white fw-bold">
+          <i class="bi bi-flag-fill"></i> Selesai Testing
+        </div>
+        <div class="card-body">
+          <p class="small text-muted mb-2">
+            Klik jika seluruh testing sudah selesai. Programmer tidak bisa mengerjakan bug lagi setelah ini.
+          </p>
+          <form action="/bugs/<%= bug.id %>/selesai-testing" method="POST"
+                onsubmit="return confirm('Yakin selesai testing? Programmer tidak bisa mengerjakan lagi.')">
+            <button type="submit" class="btn btn-danger btn-sm w-100">
+              <i class="bi bi-check-circle-fill"></i> Selesai Testing
+            </button>
+          </form>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- [5] Riwayat -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white fw-bold">
+          <i class="bi bi-clock-history"></i> Riwayat
+        </div>
+        <div class="card-body p-0">
+          <% if (history.length > 0) { %>
+          <ul class="list-group list-group-flush">
+            <% history.forEach(h => { %>
+            <li class="list-group-item py-2">
+              <div class="d-flex justify-content-between">
+                <small class="fw-semibold"><%= h.user_nama %></small>
+                <small class="text-muted"><%= helpers.formatDateTime(h.created_at) %></small>
+              </div>
+              <div class="small">
+                <span class="badge bg-secondary"><%= h.status_lama || '-' %></span>
+                <i class="bi bi-arrow-right"></i>
+                <span class="badge bg-<%= helpers.statusColor(h.status_baru) %>"><%= h.status_baru %></span>
+              </div>
+              <% if (h.keterangan) { %>
+              <div class="text-muted mt-1"
+                   style="font-size:0.82rem;background:#f8f9fa;padding:4px 6px;border-radius:4px">
+                <i class="bi bi-chat-left-text me-1"></i><%= h.keterangan %>
+              </div>
+              <% } %>
+            </li>
+            <% }) %>
+          </ul>
+          <% } else { %>
+          <p class="text-muted small p-3 mb-0">Belum ada riwayat.</p>
+          <% } %>
+        </div>
+      </div>
+
+    </div><!-- /col-md-4 -->
+  </div><!-- /row -->
+
+<%- include('../partials/footer') %>

@@ -9,6 +9,55 @@
   <% } %>
 </div>
 
+<!-- Filter Dropdown -->
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form class="row g-2 align-items-end" method="GET">
+      <div class="col-md-3 col-6">
+        <label class="form-label small mb-1">Nama Aplikasi</label>
+        <select name="nama" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">Semua Aplikasi</option>
+          <% allNames.forEach(n => { %>
+            <option value="<%= n.nama_aplikasi %>" <%= query.nama === n.nama_aplikasi ? 'selected' : '' %>>
+              <%= n.nama_aplikasi %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="col-md-2 col-6">
+        <label class="form-label small mb-1">Versi</label>
+        <select name="versi" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">Semua Versi</option>
+          <% allVersions.forEach(v => { %>
+            <option value="<%= v.versi %>" <%= query.versi === v.versi ? 'selected' : '' %>>
+              <%= v.versi %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="col-md-2 col-6">
+        <label class="form-label small mb-1">Status</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">Semua Status</option>
+          <option value="pending"  <%= query.status === 'pending'  ? 'selected' : '' %>>Pending</option>
+          <option value="testing"  <%= query.status === 'testing'  ? 'selected' : '' %>>Testing</option>
+          <option value="selesai"  <%= query.status === 'selesai'  ? 'selected' : '' %>>Selesai</option>
+        </select>
+      </div>
+      <div class="col-md-3 col-6">
+        <label class="form-label small mb-1">Deadline</label>
+        <input type="date" name="deadline" class="form-control form-control-sm"
+               value="<%= query.deadline || '' %>" onchange="this.form.submit()">
+      </div>
+      <div class="col-auto ms-auto">
+        <a href="/applications" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-counterclockwise"></i> Reset
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="card shadow-sm">
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -16,7 +65,7 @@
         <thead class="table-dark">
           <tr>
             <th>No</th><th>Nama Aplikasi</th><th>Versi</th>
-            <th>Tim Leader</th><th>Status</th><th>Total Bugs</th>
+            <th>Tim Leader</th><th>Status</th><th>Bugs Aktif</th>
             <th>Deadline</th><th>Aksi</th>
           </tr>
         </thead>
@@ -29,6 +78,11 @@
               <% if (app.deskripsi) { %>
               <br><small class="text-muted"><%= helpers.truncate(app.deskripsi, 50) %></small>
               <% } %>
+              <% if (app.testing_finished) { %>
+              <br><span class="badge bg-success-subtle text-success border border-success" style="font-size:0.65rem;">
+                <i class="bi bi-check-circle"></i> Testing Selesai
+              </span>
+              <% } %>
             </td>
             <td><span class="badge bg-secondary"><%= app.versi || '-' %></span></td>
             <td><%= app.leader_nama || '-' %></td>
@@ -38,7 +92,7 @@
               </span>
             </td>
             <td>
-              <span class="text-danger fw-bold"><%= app.bugs_open || 0 %> open</span> /
+              <span class="text-danger fw-bold"><%= app.bugs_open || 0 %> aktif</span> /
               <span class="text-success"><%= app.bugs_fixed || 0 %> fixed</span>
             </td>
             <td><small><%= helpers.formatDate(app.tanggal_deadline) %></small></td>
@@ -51,9 +105,9 @@
                 <i class="bi bi-pencil"></i>
               </a>
               <% } %>
-              <% if (helpers.hasRole(user, 'admin')) { %>
-              <form action="/applications/<%= app.id %>?_method=DELETE" method="POST" 
-                    class="d-inline" onsubmit="return confirm('Yakin hapus?')">
+              <% if (helpers.hasRole(user, 'tim_leader', 'admin')) { %>
+              <form action="/applications/<%= app.id %>?_method=DELETE" method="POST"
+                    class="d-inline" onsubmit="return confirm('Yakin hapus aplikasi ini beserta seluruh data terkait?')">
                 <button class="btn btn-sm btn-outline-danger">
                   <i class="bi bi-trash"></i>
                 </button>
@@ -65,6 +119,7 @@
           <% if (apps.length === 0) { %>
           <tr>
             <td colspan="8" class="text-center text-muted py-4">
+              <i class="bi bi-folder-x fs-3 d-block mb-2"></i>
               Belum ada data aplikasi
             </td>
           </tr>
