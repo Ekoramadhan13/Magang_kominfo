@@ -209,7 +209,8 @@ const appController = {
 
       const [useCases] = await db.query('SELECT * FROM use_cases WHERE application_id = ? ORDER BY id ASC', [id]);
       const [bugs] = await db.query(`
-        SELECT b.*, u.nama AS tester_nama, uc.judul AS use_case_judul
+        SELECT b.*, u.nama AS tester_nama, uc.judul AS use_case_judul,
+               (SELECT COUNT(*) FROM bug_history bh WHERE bh.bug_id = b.id AND bh.keterangan LIKE 'BERHASIL DENGAN CATATAN%') AS is_catatan
         FROM bugs b
         LEFT JOIN users u ON b.tester_id = u.id
         LEFT JOIN use_cases uc ON b.use_case_id = uc.id
