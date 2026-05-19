@@ -86,7 +86,6 @@
             { label: 'In Progress',val: bugStats.in_progress, color: 'warning'   },
             { label: 'Fixed',      val: bugStats.fixed,       color: 'primary'   },
             { label: 'Verified',   val: bugStats.verified,    color: 'success'   },
-            { label: 'Closed',     val: bugStats.closed,      color: 'secondary' },
             { label: 'Rejected',   val: bugStats.rejected,    color: 'dark'      }
           ]; %>
           <% statItems.forEach(s => { %>
@@ -320,8 +319,9 @@
               <td><small class="text-muted"><%= bug.use_case_judul || '-' %></small></td>
               <td>
                 <% if (['verified','rejected','closed'].includes(bug.status)) { %>
-                  <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>" style="font-size:0.7rem;">
-                    <%= helpers.bugOutcomeLabel(bug.status) %>
+                  <% const catColor = (bug.status === 'closed' || bug.is_catatan > 0) ? 'warning' : helpers.bugStatusColor(bug.status); %>
+                  <span class="badge bg-<%= catColor %>" style="font-size:0.7rem;">
+                    <%= helpers.bugOutcomeLabel(bug) %>
                   </span>
                 <% } else { %>
                   <span class="text-muted small">-</span>

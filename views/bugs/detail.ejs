@@ -66,8 +66,9 @@
             <div class="col-md-3"><strong>Kategori:</strong></div>
             <div class="col-md-9">
               <% if (['verified','rejected','closed'].includes(bug.status)) { %>
-                <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>">
-                  <%= helpers.bugOutcomeLabel(bug.status) %>
+                <% const catColor = (bug.status === 'closed' || bug.is_catatan > 0) ? 'warning' : helpers.bugStatusColor(bug.status); %>
+                <span class="badge bg-<%= catColor %>">
+                  <%= helpers.bugOutcomeLabel(bug) %>
                 </span>
               <% } else { %>
                 <span class="text-muted small">Belum ada hasil (masih diproses)</span>
@@ -237,7 +238,7 @@
 
       <!-- [3] Verifikasi (Tester/Ketua Tester) setelah Programmer Fixed -->
       <% if (helpers.hasRole(user, 'tester', 'ketua_tester') && bug.status === 'fixed') { %>
-      <div class="card shadow-sm mb-3">
+      <div class="card shadow-sm mb-3 border-success">
         <div class="card-header bg-success text-white fw-bold">
           <i class="bi bi-patch-check"></i> Verifikasi Hasil Perbaikan
         </div>
@@ -245,35 +246,75 @@
           <p class="small text-muted mb-3">
             Pilih hasil verifikasi setelah memeriksa perbaikan dari Programmer/DSI.
           </p>
-          <!-- Berhasil -->
-          <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST" class="mb-2">
-            <input type="hidden" name="action" value="verified">
-            <textarea name="catatan" class="form-control form-control-sm mb-2" rows="2"
-                      placeholder="Catatan (opsional)"></textarea>
-            <button type="submit" class="btn btn-success w-100">
-              <i class="bi bi-check-circle"></i> Berhasil
-            </button>
-          </form>
-          <!-- Berhasil Dengan Catatan -->
-          <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST" class="mb-2">
-            <input type="hidden" name="action" value="closed">
-            <textarea name="catatan" class="form-control form-control-sm mb-2" rows="2"
-                      placeholder="Catatan wajib diisi..." required></textarea>
-            <button type="submit" class="btn btn-warning w-100 text-dark">
-              <i class="bi bi-info-circle"></i> Berhasil Dengan Catatan
-            </button>
-          </form>
-          <!-- Gagal -->
-          <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST">
-            <input type="hidden" name="action" value="rejected">
-            <textarea name="catatan" class="form-control form-control-sm mb-2" rows="2"
-                      placeholder="Alasan penolakan..." required></textarea>
-            <button type="submit" class="btn btn-outline-danger w-100">
-              <i class="bi bi-x-circle"></i> Gagal (Perlu Diperbaiki Ulang)
+          <form action="/bugs/<%= bug.id %>/verify?_method=PUT" method="POST" id="formVerifikasi">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Hasil Verifikasi</label>
+              <select name="action" id="verifikasiAction" class="form-select form-select-sm" required>
+                <option value="" disabled selected>-- Pilih Hasil --</option>
+                <option value="verified">Berhasil</option>
+                <option value="rejected_with_notes">Berhasil Dengan Catatan</option>
+                <option value="rejected">Gagal (Perlu Diperbaiki Ulang)</option>
+              </select>
+            </div>
+            
+            <div class="mb-3" id="catatanContainer">
+              <label class="form-label small fw-bold" id="catatanLabel">Catatan / Alasan</label>
+              <textarea name="catatan" id="catatanTextarea" class="form-control form-control-sm" rows="3"
+                        placeholder="Masukkan catatan atau alasan..."></textarea>
+            </div>
+            
+            <button type="submit" id="btnSubmitVerifikasi" class="btn btn-success btn-sm w-100 fw-bold py-2">
+              <i id="btnSubmitIcon" class="bi bi-check-circle-fill me-1"></i> <span id="btnSubmitText">Simpan Verifikasi</span>
             </button>
           </form>
         </div>
       </div>
+      
+      <script>
+        document.getElementById('verifikasiAction').addEventListener('change', function() {
+          const action = this.value;
+          const catatanTextarea = document.getElementById('catatanTextarea');
+          const catatanLabel = document.getElementById('catatanLabel');
+          
+          const btnSubmit = document.getElementById('btnSubmitVerifikasi');
+          const btnText = document.getElementById('btnSubmitText');
+          const btnIcon = document.getElementById('btnSubmitIcon');
+          
+          // Reset classes and icons
+          btnSubmit.className = 'btn btn-sm w-100 fw-bold py-2';
+          btnIcon.className = 'bi me-1';
+          
+          if (action === 'verified') {
+            catatanTextarea.required = false;
+            catatanTextarea.placeholder = 'Catatan (opsional)';
+            catatanLabel.innerHTML = 'Catatan <span class="text-muted">(Opsional)</span>';
+            
+            btnSubmit.classList.add('btn-success');
+            btnText.innerText = 'Berhasil Verified';
+            btnIcon.classList.add('bi-check-circle-fill');
+          } else if (action === 'rejected_with_notes') {
+            catatanTextarea.required = true;
+            catatanTextarea.placeholder = 'Catatan wajib diisi...';
+            catatanLabel.innerHTML = 'Catatan <span class="text-danger">*</span>';
+            
+            btnSubmit.classList.add('btn-warning', 'text-dark');
+            btnText.innerText = 'Simpan Berhasil Dengan Catatan';
+            btnIcon.classList.add('bi-exclamation-circle-fill');
+          } else if (action === 'rejected') {
+            catatanTextarea.required = true;
+            catatanTextarea.placeholder = 'Alasan penolakan wajib diisi...';
+            catatanLabel.innerHTML = 'Alasan Penolakan <span class="text-danger">*</span>';
+            
+            btnSubmit.classList.add('btn-danger');
+            btnText.innerText = 'Gagal (Perlu Diperbaiki Ulang)';
+            btnIcon.classList.add('bi-x-circle-fill');
+          } else {
+            btnSubmit.classList.add('btn-success');
+            btnText.innerText = 'Simpan Verifikasi';
+            btnIcon.classList.add('bi-check-circle-fill');
+          }
+        });
+      </script>
       <% } %>
 
       <!-- [4] Selesai Testing -->

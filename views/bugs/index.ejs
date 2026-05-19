@@ -37,7 +37,6 @@
             <option value="in_progress" <%= query.status === 'in_progress' ? 'selected' : '' %>>In Progress</option>
             <option value="fixed"       <%= query.status === 'fixed'       ? 'selected' : '' %>>Fixed</option>
             <option value="verified"    <%= query.status === 'verified'    ? 'selected' : '' %>>Verified</option>
-            <option value="closed"      <%= query.status === 'closed'      ? 'selected' : '' %>>Closed</option>
             <option value="rejected"    <%= query.status === 'rejected'    ? 'selected' : '' %>>Rejected</option>
           </select>
         </div>
@@ -99,11 +98,12 @@
               <td><small class="text-muted"><%= bug.use_case_judul || '-' %></small></td>
               <td>
                 <% if (['verified','rejected','closed'].includes(bug.status)) { %>
-                  <span class="badge bg-<%= helpers.bugStatusColor(bug.status) %>-subtle
-                               text-<%= helpers.bugStatusColor(bug.status) %>
-                               border border-<%= helpers.bugStatusColor(bug.status) %>"
+                  <% const outcomeColor = (bug.status === 'closed' || bug.is_catatan > 0) ? 'warning' : helpers.bugStatusColor(bug.status); %>
+                  <span class="badge bg-<%= outcomeColor %>-subtle
+                               text-<%= outcomeColor %>
+                               border border-<%= outcomeColor %>"
                         style="font-size:0.7rem;">
-                    <%= helpers.bugOutcomeLabel(bug.status) %>
+                    <%= helpers.bugOutcomeLabel(bug) %>
                   </span>
                 <% } else { %>
                   <span class="text-muted small">-</span>
