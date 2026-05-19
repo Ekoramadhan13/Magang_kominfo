@@ -51,12 +51,19 @@ const helpers = {
       rejected: 'Rejected' 
     })[s] || 'Open';
   },
-  bugOutcomeLabel: (s) => {
-    return ({ 
-      verified: 'Berhasil', 
-      closed: 'Berhasil dengan catatan', 
-      rejected: 'Gagal' 
-    })[s] || '-';
+  bugOutcomeLabel: (bug) => {
+    if (!bug) return '-';
+    if (typeof bug === 'string') {
+      return ({ 
+        verified: 'Berhasil', 
+        closed: 'Berhasil dengan catatan', 
+        rejected: 'Gagal' 
+      })[bug] || '-';
+    }
+    if (bug.status === 'verified') return 'Berhasil';
+    if (bug.status === 'closed' || bug.is_catatan > 0) return 'Berhasil dengan catatan';
+    if (bug.status === 'rejected') return 'Gagal';
+    return '-';
   },
   bugStatusColor: (s) => ({ 
     open: 'info', 
