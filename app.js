@@ -34,7 +34,7 @@ app.use(async (req, res, next) => {
   res.locals.helpers = helpers;
   
   if (req.session.user) {
-    res.locals.unreadNotifications = await notifHelper.getUnread(req.session.user.id);
+    res.locals.unreadNotifications = await notifHelper.getCombinedTasksAndNotifs(req.session.user);
   } else {
     res.locals.unreadNotifications = [];
   }
