@@ -18,7 +18,8 @@ const bugController = {
 
       let query = `
         SELECT b.*, a.nama_aplikasi, u.nama AS tester_nama,
-               uc.judul AS use_case_judul
+               uc.judul AS use_case_judul,
+               (SELECT COUNT(*) FROM bug_history bh WHERE bh.bug_id = b.id AND bh.keterangan LIKE 'BERHASIL DENGAN CATATAN%') AS is_catatan
         FROM bugs b
         LEFT JOIN applications a ON b.application_id = a.id
         LEFT JOIN users u ON b.tester_id = u.id
@@ -44,9 +45,13 @@ const bugController = {
 
       // Filter Kategori (hasil akhir via status)
       if (kategori) {
-        if (kategori === 'Berhasil') query += ' AND b.status = "verified"';
-        else if (kategori === 'Gagal') query += ' AND b.status = "rejected"';
-        else if (kategori === 'Berhasil dengan catatan') query += ' AND b.status = "closed"';
+        if (kategori === 'Berhasil') {
+          query += ' AND b.status = "verified"';
+        } else if (kategori === 'Gagal') {
+          query += ' AND b.status = "rejected" AND b.id NOT IN (SELECT bug_id FROM bug_history WHERE keterangan LIKE "BERHASIL DENGAN CATATAN%")';
+        } else if (kategori === 'Berhasil dengan catatan') {
+          query += ' AND (b.status = "closed" OR (b.status = "rejected" AND b.id IN (SELECT bug_id FROM bug_history WHERE keterangan LIKE "BERHASIL DENGAN CATATAN%")))';
+        }
       }
 
       // Filter Status
@@ -197,7 +202,8 @@ const bugController = {
       const { id } = req.params;
       const [[bug]] = await db.query(`
         SELECT b.*, a.nama_aplikasi, a.testing_finished, u.nama AS tester_nama,
-               uc.judul AS use_case_judul, p.nama AS programmer_nama
+               uc.judul AS use_case_judul, p.nama AS programmer_nama,
+               (SELECT COUNT(*) FROM bug_history bh WHERE bh.bug_id = b.id AND bh.keterangan LIKE 'BERHASIL DENGAN CATATAN%') AS is_catatan
         FROM bugs b
         LEFT JOIN applications a ON b.application_id = a.id
         LEFT JOIN users u ON b.tester_id = u.id
@@ -411,14 +417,15 @@ const bugController = {
       const statusLama = bugRow?.status;
 
       let statusBaru = 'verified';
-      if (action === 'rejected') statusBaru = 'rejected';
-      else if (action === 'closed') statusBaru = 'closed';
+      if (action === 'rejected' || action === 'rejected_with_notes') {
+        statusBaru = 'rejected';
+      }
 
       await db.query('UPDATE bugs SET status=? WHERE id=?', [statusBaru, id]);
 
       const keterangan = action === 'rejected'
         ? `DITOLAK: ${catatan}`
-        : action === 'closed'
+        : action === 'rejected_with_notes'
           ? `BERHASIL DENGAN CATATAN: ${catatan}`
           : `DIVERIFIKASI: ${catatan}`;
 
@@ -429,28 +436,33 @@ const bugController = {
 
       const msgMap = {
         verified: 'Bug berhasil diverifikasi! Hasil: Berhasil.',
-        closed: 'Bug ditutup dengan catatan! Hasil: Berhasil Dengan Catatan.',
-        rejected: 'Bug ditolak, dikembalikan ke programmer. Hasil: Gagal.'
+        rejected: action === 'rejected_with_notes'
+          ? 'Bug ditutup dengan catatan! Hasil: Berhasil Dengan Catatan.'
+          : 'Bug ditolak, dikembalikan ke programmer. Hasil: Gagal.'
       };
 
-      // Kirim Notifikasi ke Programmer jika rejected
-      if (action === 'rejected') {
+      // Kirim Notifikasi ke Programmer jika rejected / rejected_with_notes
+      if (statusBaru === 'rejected') {
         const [contributors] = await db.query('SELECT user_id FROM bug_contributors WHERE bug_id = ?', [id]);
         const [[bugData]] = await db.query('SELECT judul FROM bugs WHERE id = ?', [id]);
 
+        const notifMsg = action === 'rejected_with_notes'
+          ? `Bug berhasil dengan catatan: ${bugData.judul}. Silakan dicek kembali.`
+          : `Bug ditolak: ${bugData.judul}. Silakan diperbaiki kembali.`;
+
         for (const c of contributors) {
-          await notifHelper.send(c.user_id, `Bug ditolak: ${bugData.judul}. Silakan diperbaiki kembali.`, `/bugs/${id}`);
+          await notifHelper.send(c.user_id, notifMsg, `/bugs/${id}`);
         }
         // Jika belum ada kontributor, kirim ke penanggung jawab utama
         if (contributors.length === 0) {
           const [[assigned]] = await db.query('SELECT assigned_to FROM bugs WHERE id = ?', [id]);
           if (assigned && assigned.assigned_to) {
-            await notifHelper.send(assigned.assigned_to, `Bug ditolak: ${bugData.judul}. Silakan diperbaiki kembali.`, `/bugs/${id}`);
+            await notifHelper.send(assigned.assigned_to, notifMsg, `/bugs/${id}`);
           }
         }
       }
 
-      req.flash('success', msgMap[statusBaru] || 'Status bug diupdate.');
+      req.flash('success', msgMap[action === 'rejected_with_notes' ? 'rejected' : statusBaru] || 'Status bug diupdate.');
       res.redirect(`/bugs/${id}`);
     } catch (err) {
       console.error(err);
